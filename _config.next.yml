@@ -1,0 +1,10 @@
+pjax: true
+minify: true
+scheme: Mist
+darkmode: true
+avatar:
+  url: /images/avatar.jpg
+social:
+  Github: "https://github.com/erikh"
+  Twitter: "https://twitter.com/erikhollensbe"
+  E-Mail: "mailto:erik+blog@hollensbe.org"
