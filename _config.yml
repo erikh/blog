@@ -114,4 +114,7 @@ theme: next
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
-  type: ''
+  type: 'git'
+  repo: 'https://github.com/erikh/blog'
+  token: '$GITHUB_TOKEN'
+  branch: gh-pages
