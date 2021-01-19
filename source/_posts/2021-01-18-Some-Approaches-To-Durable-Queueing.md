@@ -8,9 +8,9 @@ date: 2021-01-18 17:44:23
 
 # Get in Line
 
-As computer professionals, queuing is something that's close to most of us. After all, from the bottom up -- from CPU instructions to network packets to async reactor calls -- things get in line.
+As computer professionals, queueing is something that's close to most of us. After all, from the bottom up -- from CPU instructions to network packets to async reactor calls -- things get in line.
 
-There are lots of queuing approaches in computer science and in life in general; as a result, we're only going to talk about a specific subclass of queues: durable ones that specifically _are not_ distributed amongst multiple hosts. These tend to be great models for smaller systems that do not need the overhead, complexity or reliability problems that distributed queues have.
+There are lots of queueing approaches in computer science and in life in general; as a result, we're only going to talk about a specific subclass of queues: durable ones that specifically _are not_ distributed amongst multiple hosts. These tend to be great models for smaller systems that do not need the overhead, complexity or reliability problems that distributed queues have.
 
 # Some options before you dive in
 
@@ -145,7 +145,7 @@ Simpler, and much faster given the runtime's direct involvement.
 
 # So, wait, you said something about durable?
 
-Yes, I did! You may have noticed that your queue always starts at `0` and counts up to `9999`. _Durable_ queuing enables us to start at `10000` and work upwards as we encounter new data, between process restarts. Naturally, this involves databases of some form.
+Yes, I did! You may have noticed that your queue always starts at `0` and counts up to `9999`. _Durable_ queueing enables us to start at `10000` and work upwards as we encounter new data, between process restarts. Naturally, this involves databases of some form.
 
 ## The filesystem is a database, right?
 

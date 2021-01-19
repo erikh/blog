@@ -1,6 +1,6 @@
 pjax: true
 minify: true
-scheme: Mist
+scheme: Gemini
 darkmode: true
 avatar:
   url: /images/avatar.jpg
@@ -8,3 +8,13 @@ social:
   Github: "https://github.com/erikh"
   Twitter: "https://twitter.com/erikhollensbe"
   E-Mail: "mailto:erik+blog@hollensbe.org"
+font:
+  global:
+    external: false
+    family: Georgia
+  codes:
+    external: false
+    family: Courier New
+  headings:
+    external: false
+    family: Helvetica
