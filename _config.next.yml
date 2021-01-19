@@ -18,3 +18,5 @@ font:
   headings:
     external: false
     family: Helvetica
+google_analytics:
+  tracking_id: UA-174900471-1
