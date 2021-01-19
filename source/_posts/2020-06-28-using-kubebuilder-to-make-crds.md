@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Using kubebuilder to make CRDs and clients
-categories:
+tags:
   - Programming
   - Kubernetes
   - Golang

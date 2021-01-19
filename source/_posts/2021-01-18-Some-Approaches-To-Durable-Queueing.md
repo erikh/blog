@@ -1,6 +1,6 @@
 ---
 title: "Some Approaches To Single-Process, Durable Queueing"
-categories:
+tags:
   - Programming
   - Golang
 date: 2021-01-18 17:44:23

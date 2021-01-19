@@ -4,6 +4,7 @@ scheme: Gemini
 darkmode: true
 avatar:
   url: /images/avatar.jpg
+  rotated: true
 social:
   Github: "https://github.com/erikh"
   Twitter: "https://twitter.com/erikhollensbe"
@@ -20,3 +21,7 @@ font:
     family: Helvetica
 google_analytics:
   tracking_id: UA-174900471-1
+site_state: false
+menu:
+  home: /
+  archives: /archives

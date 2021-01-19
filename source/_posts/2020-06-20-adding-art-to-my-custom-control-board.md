@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Adding art to my custom control board
-categories:
+tags:
   - Arcade
 ---
 
