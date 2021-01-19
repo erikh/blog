@@ -71,7 +71,7 @@ func (q *queue) dequeue() (item, error) {
 	// take the first item and dequeue the array or overwrite it if there's only
 	// one item
 	i := q.items[0]
-	if len(q.items) > 0 {
+	if len(q.items) > 1 {
 		q.items = q.items[1:]
 	} else {
 		q.items = []item{}
@@ -84,7 +84,7 @@ func main() {
 	q := &queue{}
 	done := make(chan struct{})
 
-	// start a goroutine to evaculate the queue while filling it concurrently
+	// start a goroutine to evacuate the queue while filling it concurrently
 	go func() {
 		defer close(done)
 
@@ -124,7 +124,7 @@ func main() {
 	intChan := make(chan int, 10000)
 	done := make(chan struct{})
 
-	// start a goroutine to evaculate the queue while filling it concurrently
+	// start a goroutine to evacuate the queue while filling it concurrently
 	go func() {
 		defer close(done)
 		for i := range intChan {
