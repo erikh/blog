@@ -4,6 +4,7 @@ title: Using kubebuilder to make CRDs and clients
 categories:
   - Programming
   - Kubernetes
+  - Golang
 ---
 
 [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) is a front-end for a variety of code generators for Kubernetes resources, primarily for the use of creating [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) and implementing the [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/). It's a newer, fancier version of the [generate-groups.sh](https://github.com/kubernetes/code-generator/blob/master/generate-groups.sh) script (with about 100% less cut and pasting, too).
