@@ -13,13 +13,13 @@ social:
 font:
   global:
     external: false
-    family: Georgia
+    family: serif
   codes:
     external: false
-    family: Courier New
+    family: monospace
   headings:
     external: false
-    family: Helvetica
+    family: sans-serif
 google_analytics:
   tracking_id: UA-174900471-1
 site_state: false
