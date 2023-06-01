@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.0.0-rc1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"erik.hollensbe.org","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Why am I here?Compiler-driven development is a simple pattern that generally makes developers much faster and more efficient. I have been working this way for some time, and wanted to share my experie">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Compiler-driven Development with Golang">
+<meta property="og:url" content="http://erik.hollensbe.org/2021/01/25/Compiler-driven-Development-with-Golang/index.html">
+<meta property="og:site_name" content="Hmm">
+<meta property="og:description" content="Why am I here?Compiler-driven development is a simple pattern that generally makes developers much faster and more efficient. I have been working this way for some time, and wanted to share my experie">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-01-25T09:16:40.000Z">
+<meta property="article:modified_time" content="2021-01-26T10:02:01.000Z">
+<meta property="article:author" content="Erik Hollensbe">
+<meta property="article:tag" content="Programming">
+<meta property="article:tag" content="Golang">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://erik.hollensbe.org/2021/01/25/Compiler-driven-Development-with-Golang/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://erik.hollensbe.org/2021/01/25/Compiler-driven-Development-with-Golang/","path":"2021/01/25/Compiler-driven-Development-with-Golang/","title":"Compiler-driven Development with Golang"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Compiler-driven Development with Golang | Hmm</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Hmm</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">A Technical Blog by Erik Hollensbe</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Why-am-I-here"><span class="nav-number">1.</span> <span class="nav-text">Why am I here?</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#What-is-compiler-driven-development"><span class="nav-number">2.</span> <span class="nav-text">What is compiler-driven development?</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Find-your-editor%E2%80%99s-%E2%80%9Csave-hook%E2%80%9D-functionality-or-use-file-notification-tools"><span class="nav-number">3.</span> <span class="nav-text">Find your editor’s “save hook” functionality, or use file notification tools</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#The-pattern"><span class="nav-number">4.</span> <span class="nav-text">The pattern</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Things-you-might-want-to-do-on-save"><span class="nav-number">5.</span> <span class="nav-text">Things you might want to do on save</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Vim-specific-things"><span class="nav-number">5.1.</span> <span class="nav-text">Vim-specific things</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Golang-specific-things"><span class="nav-number">5.2.</span> <span class="nav-text">Golang-specific things</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#General-things"><span class="nav-number">5.3.</span> <span class="nav-text">General things</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Erik Hollensbe"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">Erik Hollensbe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/erikh" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;erikh" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:erik+blog@hollensbe.org" title="E-Mail → mailto:erik+blog@hollensbe.org" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://erik.hollensbe.org/2021/01/25/Compiler-driven-Development-with-Golang/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Erik Hollensbe">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hmm">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Compiler-driven Development with Golang | Hmm">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Compiler-driven Development with Golang
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-01-25 01:16:40" itemprop="dateCreated datePublished" datetime="2021-01-25T01:16:40-08:00">2021-01-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2021-01-26 02:02:01" itemprop="dateModified" datetime="2021-01-26T02:02:01-08:00">2021-01-26</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="Why-am-I-here"><a href="#Why-am-I-here" class="headerlink" title="Why am I here?"></a>Why am I here?</h1><p>Compiler-driven development is a simple pattern that generally makes developers much faster and more efficient. I have been working this way for some time, and wanted to share my experiences; ones I hope are useful to you.</p>
+<p>Most of this article covers usage in Golang and vim. You should not need to be a user of vim – just comfortable in your editor – to make use of these tips.</p>
+<h1 id="What-is-compiler-driven-development"><a href="#What-is-compiler-driven-development" class="headerlink" title="What is compiler-driven development?"></a>What is compiler-driven development?</h1><p>Compiler-driven development is just a fancy term for letting the compiler, linter, tests, or other automated code management tools tell you where to go next. Basically, it’s a useful pattern in a variety of scenarios for distilling problems with your code into small, compose-able fixes by letting the compiler tell you in steps what is broken.</p>
+<p>Naturally, this doesn’t work for everything (you still have to use your brain sometimes, after all) but it can be quite efficient when you have a nice workflow configured. Additionally, this only works well for languages that have compilers, ideally type-inferred or at least statically typed ones.</p>
+<p>Today we will be using <a target="_blank" rel="noopener" href="https://golang.org/">Golang</a> and most of the tools will be centered around it. However, many of the techniques you will find applicable to other languages; “Compiler-driven development” as a term is something I picked up from the <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/">Rust Book</a>. I love that there is finally a phrase for it (well, at least, a new one to me).</p>
+<p>Anyway, on to the meat.</p>
+<h1 id="Find-your-editor’s-“save-hook”-functionality-or-use-file-notification-tools"><a href="#Find-your-editor’s-“save-hook”-functionality-or-use-file-notification-tools" class="headerlink" title="Find your editor’s “save hook” functionality, or use file notification tools"></a>Find your editor’s “save hook” functionality, or use file notification tools</h1><p>Continuously running your compiler, linter, or other tools is how you get ahead; this is typically easiest to set up as a save hook. In vim for Golang, this is as easy as importing <a target="_blank" rel="noopener" href="https://github.com/fatih/vim-go">vim-go</a>, which will do much of this for you automatically. <code>vim-go</code> will also format and lint your code, as well as compile check it by default. The results will be in your quicklist for easy search and manipulation.</p>
+<p>If you don’t (or can’t; sometimes projects are large and rebuilding large chunks of them isn’t realistic on save) want to invade your editor, consider <a target="_blank" rel="noopener" href="https://github.com/cespare/reflex">reflex</a> or similar file-watching tools to scan your tree and run your commands. Grouping your commands into a script or <code>make</code> task will make it easier to run them, as well as include them in your CI to ensure others are running them, too.</p>
+<h1 id="The-pattern"><a href="#The-pattern" class="headerlink" title="The pattern"></a>The pattern</h1><p>So, get ready to have your mind blown:</p>
+<ul>
+<li>Hack on errors present in the output.</li>
+<li>Save.</li>
+<li>Wait.</li>
+<li>Read the output.</li>
+<li>Repeat.</li>
+</ul>
+<p>If this sounds familiar, well, that’s because most of us do this basically already. The real win is in the tooling here, and adapting our workflow to depend on the tools and their output to drive us forward.</p>
+<h1 id="Things-you-might-want-to-do-on-save"><a href="#Things-you-might-want-to-do-on-save" class="headerlink" title="Things you might want to do on save"></a>Things you might want to do on save</h1><p>Here are a few tools and things you might want to try doing to your code on save to yield a better experience.</p>
+<h2 id="Vim-specific-things"><a href="#Vim-specific-things" class="headerlink" title="Vim-specific things"></a>Vim-specific things</h2><p><a target="_blank" rel="noopener" href="https://github.com/vim-syntastic/syntastic">syntastic</a> is a nice little addition that puts anchors on the left column of any line that errors out. It can also highlight specific portions of the syntax in some cases. Both linters and compilers can be used, it is quite general. It is quite easy to configure: this will enable several linters, for example.</p>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">g:syntastic_go_checkers</span> = [<span class="string">&#x27;golint&#x27;</span>, <span class="string">&#x27;govet&#x27;</span>, <span class="string">&#x27;gocyclo&#x27;</span>]</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://github.com/neoclide/coc.vim">coc.vim</a> is an adaptation of much of the vscode functionality in javascript, providing a TON of language support for things like compiler-driven development as well as dynamic tab completion and other features, in a multitude of languages. <strong>Note</strong>: CoC should be used with a language server protocol plugin like <a target="_blank" rel="noopener" href="https://github.com/Golang/tools/blob/master/gopls/README.md">gopls</a>. Note that <code>vim-go</code> and CoC will both install these tools on demand.</p>
+<p>To install Golang support for CoC, type <code>:CocInstall coc-go</code> in editing mode. CoC has a lot of support for different languages and other tools on <a target="_blank" rel="noopener" href="https://npmjs.org/">npm</a>; please take a look around at its repository!</p>
+<p>To install tools to support <code>vim-go</code> (including gopls), type <code>:GoUpdateBinaries</code></p>
+<p>Personally, I’ve found including them both beneficial, but can be buggy. Be sure you have <code>gopls</code> configured so that each plugin does not run its own version of it. If I were to use only one of these, it would be CoC.</p>
+<h2 id="Golang-specific-things"><a href="#Golang-specific-things" class="headerlink" title="Golang-specific things"></a>Golang-specific things</h2><p><a target="_blank" rel="noopener" href="https://github.com/dominikh/go-tools">staticcheck</a> (inside this repo) is a great tool for finding all sorts of stuff. It finds everything from common bugs to deprecated APIs. It deserves a special mention because most of the reports you get from using the tool below this one will be from this one specifically; it does cover that much.</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/Golangci/Golangci-lint/">Golangci-lint</a> is a multi-linter that runs staticcheck as well as a lot of others, and can accept configuration that can live on a per-repository basis, making it great for editor integration (in some cases).</p>
+<p>Also, Golang has a nice <a target="_blank" rel="noopener" href="https://golang.org/cmd/go/#hdr-Build_and_test_caching">build and test cache</a>. Combining this behavior with save hooks or tools like reflex really shines great for focusing on what you’re actually dealing with.</p>
+<h2 id="General-things"><a href="#General-things" class="headerlink" title="General things"></a>General things</h2><p>Always try to leverage your language&#x2F;compiler’s build cache, if available. This will greatly improve response time of your save&#x2F;notify tools. If your language has something similar to Golang’s test cache, great! Use it.</p>
+<p>In that same vein, isolating tests (e.g., with <code>go test -run</code>) can also be a win when working on a project, but be careful to not over-isolate, as then you will get a nasty surprise when it’s time to run the full suite; or worse, in CI!</p>
+<p>Identifying your (and your team’s) working habits and distilling them into new tasks to run will be essential to fitting this into your workflow. In an event where you cannot introduce general workflow tasks, consider building your own tools outside of the repository to introduce when you get stuff done twice as fast as everyone else. :D</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Programming/" rel="tag"># Programming</a>
+              <a href="/tags/Golang/" rel="tag"># Golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/01/18/Some-Approaches-To-Durable-Queueing/" rel="prev" title="Some Approaches To Single-Process, Durable Queueing">
+                  <i class="fa fa-chevron-left"></i> Some Approaches To Single-Process, Durable Queueing
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/" rel="next" title="Driving Terraform Plugins with Write-Through APIs">
+                  Driving Terraform Plugins with Write-Through APIs <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Erik Hollensbe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.0.0-rc1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"erik.hollensbe.org","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Terraform has a great ecosystem of providers, which work in many ways analogous to Chef, Puppet, or Kubernetes’ resource ecosystems. The providers allow you to interact with third party tooling that i">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Driving Terraform Plugins with Write-Through APIs">
+<meta property="og:url" content="http://erik.hollensbe.org/2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/index.html">
+<meta property="og:site_name" content="Hmm">
+<meta property="og:description" content="Terraform has a great ecosystem of providers, which work in many ways analogous to Chef, Puppet, or Kubernetes’ resource ecosystems. The providers allow you to interact with third party tooling that i">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-02-16T01:42:56.000Z">
+<meta property="article:modified_time" content="2021-02-20T16:22:49.000Z">
+<meta property="article:author" content="Erik Hollensbe">
+<meta property="article:tag" content="Programming">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="Terraform">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://erik.hollensbe.org/2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://erik.hollensbe.org/2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/","path":"2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/","title":"Driving Terraform Plugins with Write-Through APIs"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Driving Terraform Plugins with Write-Through APIs | Hmm</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Hmm</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">A Technical Blog by Erik Hollensbe</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#An-Introduction-to-Terraform%E2%80%99s-Providers"><span class="nav-number">1.</span> <span class="nav-text">An Introduction to Terraform’s Providers</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#What-a-small-provider-looks-like"><span class="nav-number">1.1.</span> <span class="nav-text">What a (small) provider looks like</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Using-the-provider"><span class="nav-number">1.1.1.</span> <span class="nav-text">Using the provider</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#What-this-does-is"><span class="nav-number">1.1.1.1.</span> <span class="nav-text">What this does is</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#A-deeper-dive-into-the-provider"><span class="nav-number">1.1.1.2.</span> <span class="nav-text">A deeper dive into the provider</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Types"><span class="nav-number">1.1.1.2.1.</span> <span class="nav-text">Types</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Changed-Attributes"><span class="nav-number">1.1.1.2.2.</span> <span class="nav-text">Changed Attributes</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#SetId-and-the-ID-attribute"><span class="nav-number">1.1.1.2.3.</span> <span class="nav-text">SetId and the ID attribute</span></a></li></ol></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Problems-with-the-current-tooling-that-need-solving"><span class="nav-number">2.</span> <span class="nav-text">Problems with the current tooling that need solving</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Many-packages-are-in-alpha-x2F-beta-state"><span class="nav-number">2.1.</span> <span class="nav-text">Many packages are in alpha&#x2F;beta state</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Easy-propagation-of-I-x2F-O"><span class="nav-number">2.2.</span> <span class="nav-text">Easy propagation of I&#x2F;O</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Better-support-for-type-conversions"><span class="nav-number">2.3.</span> <span class="nav-text">Better support for type conversions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Better-support-for-state-auditing-testing"><span class="nav-number">2.4.</span> <span class="nav-text">Better support for state auditing (testing)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Common-Types"><span class="nav-number">2.5.</span> <span class="nav-text">Common Types</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Solutions"><span class="nav-number">3.</span> <span class="nav-text">Solutions</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Terraform-testing-library"><span class="nav-number">3.1.</span> <span class="nav-text">Terraform testing library</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#A-Schema-Wrapper-package"><span class="nav-number">3.2.</span> <span class="nav-text">A Schema Wrapper package</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Source"><span class="nav-number">3.2.1.</span> <span class="nav-text">Source</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Usage"><span class="nav-number">3.2.2.</span> <span class="nav-text">Usage</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Yielding-and-Collecting"><span class="nav-number">3.2.2.1.</span> <span class="nav-text">Yielding and Collecting</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Validations-and-Conversions"><span class="nav-number">3.2.2.2.</span> <span class="nav-text">Validations and Conversions</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Impressions"><span class="nav-number">4.</span> <span class="nav-text">Impressions</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Erik Hollensbe"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">Erik Hollensbe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/erikh" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;erikh" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:erik+blog@hollensbe.org" title="E-Mail → mailto:erik+blog@hollensbe.org" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://erik.hollensbe.org/2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Erik Hollensbe">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hmm">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Driving Terraform Plugins with Write-Through APIs | Hmm">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Driving Terraform Plugins with Write-Through APIs
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-02-15 17:42:56" itemprop="dateCreated datePublished" datetime="2021-02-15T17:42:56-08:00">2021-02-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2021-02-20 08:22:49" itemprop="dateModified" datetime="2021-02-20T08:22:49-08:00">2021-02-20</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Terraform has a great ecosystem of <a target="_blank" rel="noopener" href="https://registry.terraform.io/browse/providers">providers</a>, which work in many ways analogous to Chef, Puppet, or Kubernetes’ resource ecosystems. The providers allow you to interact with third party tooling that is less desired in the core of the product and preferred to be maintained outside of it.</p>
+<p>To interoperate with the terraform plugin ecosystem, this article can help you understand what is involved, but just goes into a specific technique you can use to integrate your APIs with providers. <a target="_blank" rel="noopener" href="https://learn.hashicorp.com/collections/terraform/providers">Here</a> is where you can befriend even more wonderful documentation by the Hashicorp folks that can get you on your way to making your own provider. Go there first!</p>
+<p>Terraform&#x2F;Hashicorp keeps a <a target="_blank" rel="noopener" href="https://registry.terraform.io/">registry</a> of major third party integrations, so be sure to check that out before diving off into third party purgatory. :)</p>
+<h1 id="An-Introduction-to-Terraform’s-Providers"><a href="#An-Introduction-to-Terraform’s-Providers" class="headerlink" title="An Introduction to Terraform’s Providers"></a>An Introduction to Terraform’s Providers</h1><p>Terraform talks to it’s providers through an application protocol called <a target="_blank" rel="noopener" href="https://grpc.io/">GRPC</a> which then leverages a serialized format called <a target="_blank" rel="noopener" href="https://developers.google.com/protocol-buffers">protocol buffers</a> to turn your messages into really tiny ones for the purposes of sending over the network, typically at least. Terraform however, uses GRPC to talk inter-process on a single system instead of across the network. Since protobuf (as it is frequently called) is also strongly typed as a serialization format, terraform can map a lot of your Golang types directly to protobuf ones. This is what the terraform schema accomplishes for you; we’ll see some of those definitions in a minute.</p>
+<p>But fundamentally, your process is independent of terraform and is for all intents and purposes a really limited webserver that runs for a short period of time. It’s important to know this for the purposes of debugging it later.</p>
+<h2 id="What-a-small-provider-looks-like"><a href="#What-a-small-provider-looks-like" class="headerlink" title="What a (small) provider looks like"></a>What a (small) provider looks like</h2><p>Each terraform provider consists of a few scaffolding files and the following types:</p>
+<ul>
+<li>Provider: There is typically only one of these for a given binary. It defines the provider information as well as its outer schema.</li>
+<li>Resource: This has a lot of overlap with a Schema, but ultimately provides the top-tier resources and data sources via callbacks that you write that fill in the rest of the schema. However, resources are also used to populate schema elements in some dynamic and complex scenarios.</li>
+<li>Schema: Schemas are basically type definitions, and are frequently represented as a <code>map[string]*Schema</code> to associate the types with their key names.</li>
+</ul>
+<h3 id="Using-the-provider"><a href="#Using-the-provider" class="headerlink" title="Using the provider"></a>Using the provider</h3><p>If you’d like to review the complete code as a repository, try <a target="_blank" rel="noopener" href="https://github.com/erikh/terraurl">erikh&#x2F;terraurl on GitHub</a>. If you’d like to follow along with the examples, try a <code>make install</code> after cloning the repo. You’ll need terraform 0.14 to work with this plugin.</p>
+<p>Here’s a small provider you can make: one that fetches a URL with a customizable <code>User-Agent</code> and stuffs the result at the <code>target_path</code>, and doesn’t fetch again as long as the modified time and file size are the same. Here’s an example:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">terraform &#123;</span><br><span class="line">  required_providers &#123;</span><br><span class="line">    terraurl = &#123;</span><br><span class="line">      source  = &quot;github.com/erikh/terraurl&quot;</span><br><span class="line">      version = &quot;0.0.1&quot;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">provider &quot;terraurl&quot; &#123;</span><br><span class="line">  user_agent = &quot;Hello my baby, hello my honey, hello my ragtime gal&quot;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">resource &quot;terraurl_fetch&quot; &quot;golang&quot; &#123;</span><br><span class="line">  url         = &quot;https://storage.googleapis.com/golang/go1.16.linux-amd64.tar.gz&quot;</span><br><span class="line">  target_path = &quot;/tmp/golang.tar.gz&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="What-this-does-is"><a href="#What-this-does-is" class="headerlink" title="What this does is"></a>What this does is</h4><p>First, import our custom provider at the source and version and also <em>operating system</em> and <em>architecture</em>. Because Golang builds to native binaries, we cannot rely on an interpreter to keep us from having to build a version for every select architecture. I strongly recommend looking at investing into go tooling like <a target="_blank" rel="noopener" href="https://goreleaser.com/">GoReleaser</a> to solve this problem for you. You may have noticed that <code>make install</code> in the repository does this for you by detecting your architecture with <code>go env</code>.</p>
+<p>Boot the provider with the supplied parameters; in this case, <code>user_agent</code> will be changed to something sillier and more amphibian for all client requests.</p>
+<p>Finally, it fetches the latest (at the time of this writing) stable version of Golang, and stuffs it under <code>/tmp</code>. State changes are expected to alter the local content, that is, a changed file on disk, or remotely, should synchronize the remote to local.</p>
+<h4 id="A-deeper-dive-into-the-provider"><a href="#A-deeper-dive-into-the-provider" class="headerlink" title="A deeper dive into the provider"></a>A deeper dive into the provider</h4><p>I’m going to do this section a little differently since there is more code than normal. <a target="_blank" rel="noopener" href="https://github.com/erikh/terraurl">Follow along on Github</a>. See <code>main.go</code> for the majority of the effort.</p>
+<h5 id="Types"><a href="#Types" class="headerlink" title="Types"></a>Types</h5><p>First, let’s examine the typed&#x2F;typeless hybrid nature of terraform. You will see a ton of code that works like this:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">d.Get(<span class="string">&quot;some_key&quot;</span>).(<span class="type">string</span>)</span><br><span class="line">d.Get(<span class="string">&quot;other_key&quot;</span>).(<span class="type">int64</span>)</span><br></pre></td></tr></table></figure>
+
+<p>Most Go programmers know what a type assertion is, the act of making sure an <code>interface&#123;&#125;</code> type is a specific type, used as a type-safe cast, <em>with the penalty being a panicked goroutine for mistakes</em>. When reading the code, keep in mind that almost all type assertions are controlled operations and that the chances of them panicking are low to nil at worst. The schema enforces our types as a part of the I&#x2F;O process, so we can safely assert them during <code>Get()</code> calls. Note that there is also <code>GetOk()</code> to see if things are modified or exist already, in the event you need to more delicately control this behavior.</p>
+<p>In other instances, there is an agreed on protocol – for example the handle to <code>*TerraURLClient</code>, that can be safely asserted into a new variable because it’s configured that way as a part of a standard process. More of these standard processes will be tacked onto the terraform schema later on in this article.</p>
+<p>Types will be a thing you battle. We implement some patterns later on in this article to assist with this.</p>
+<h5 id="Changed-Attributes"><a href="#Changed-Attributes" class="headerlink" title="Changed Attributes"></a>Changed Attributes</h5><p>You will see calls to <code>d.HasChanged</code> in the provider as well; these are terraform hooks into the metadata system to see if the plan or computed (read) values have deviated from the state; this call allows us to determine if there are any changes to initiate as a result.</p>
+<p>This call is used in <code>UpdateContext</code> hooks regularly.</p>
+<h5 id="SetId-and-the-ID-attribute"><a href="#SetId-and-the-ID-attribute" class="headerlink" title="SetId and the ID attribute"></a>SetId and the ID attribute</h5><p><code>SetId(&quot;&quot;)</code> removes the state for the ID you’re processing. It is frequently used in <code>DeleteContext</code> calls and situations (like our local file deletion) that require state to be re-created.</p>
+<p>Note, likewise, you must set an ID to record state at all for the resource you’re processing.</p>
+<h1 id="Problems-with-the-current-tooling-that-need-solving"><a href="#Problems-with-the-current-tooling-that-need-solving" class="headerlink" title="Problems with the current tooling that need solving"></a>Problems with the current tooling that need solving</h1><p>So we used a lot of words getting to this point, so this part should be a little shorter and sweeter, now that you know how to make a terraform plugin.</p>
+<p>Here are some challenges you will run into.</p>
+<h2 id="Many-packages-are-in-alpha-x2F-beta-state"><a href="#Many-packages-are-in-alpha-x2F-beta-state" class="headerlink" title="Many packages are in alpha&#x2F;beta state"></a>Many packages are in alpha&#x2F;beta state</h2><p>Sorry to call this out at all, but critical things like the package that generates documentation and the schema libraries itself are in beta and alpha states at present. If you want to avoid this by using older tools, you can, but you’re in for a world of pain only the <em>Coen Brothers</em> could describe.</p>
+<p>This will fade with time, but you should be aware of it.</p>
+<h2 id="Easy-propagation-of-I-x2F-O"><a href="#Easy-propagation-of-I-x2F-O" class="headerlink" title="Easy propagation of I&#x2F;O"></a>Easy propagation of I&#x2F;O</h2><p>I&#x2F;O, specifically around types of all kinds, is kind of a mess of schlepping from one struct to <code>d.Set()</code> calls and back again through <code>d.Get()</code>, probably 95% of the time. It would be nicer if this was easier to do, like <code>flag.StringVar()</code> can work with pointers, I would like to see bound variables for terraform schemas so I can just quite literally point a whole struct at it one member at a time. I think in general this would make terraform plugins much much much simpler to write for the easy cases.</p>
+<h2 id="Better-support-for-type-conversions"><a href="#Better-support-for-type-conversions" class="headerlink" title="Better support for type conversions"></a>Better support for type conversions</h2><p>Type conversion beyond the basic types is non-existent, and hard to achieve with just the schema, leading to more boilerplate code. A simple “this is the i&#x2F;o of the type” set of hooks would help here, I think.</p>
+<h2 id="Better-support-for-state-auditing-testing"><a href="#Better-support-for-state-auditing-testing" class="headerlink" title="Better support for state auditing (testing)"></a>Better support for state auditing (testing)</h2><p>There might be better tools for this, but what I amounted to was:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">state := <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;&#125;</span><br><span class="line"></span><br><span class="line">f, _ := os.Open(<span class="string">&quot;terraform.tfstate&quot;</span>)</span><br><span class="line">json.NewDecoder(f).Decode(&amp;state)</span><br></pre></td></tr></table></figure>
+
+<p>And about 8 type assertion functions with short names. I don’t like it at all and have made some strides on the automated testing front, but hope to make a dent in this problem soon too. What I would prefer is to find a solution that already works, naturally. :) It really feels like this is missing and&#x2F;or poorly documented tooling in Terraform’s arsenal. State auditing after something has changed in terraform seems just incredibly hard to do, and I wish I knew why.</p>
+<h2 id="Common-Types"><a href="#Common-Types" class="headerlink" title="Common Types"></a>Common Types</h2><p>I think some canned types would help solve a lot of basic issues with type conversion, too.</p>
+<p>Examples of types I’d like to see directly represented in the schema:</p>
+<ul>
+<li>Files, Dirs, and Paths</li>
+<li>Networks (IP, CIDR, etc)</li>
+</ul>
+<h1 id="Solutions"><a href="#Solutions" class="headerlink" title="Solutions"></a>Solutions</h1><p>Below are some solutions to the above gripes. I am really enjoying my terraform journey and should be clear about that; all things equal, Hashicorp has really done a bang-up job making a solid API that works as it’s intended to, with minimum opportunity for accidentally being stupid about it.</p>
+<h2 id="Terraform-testing-library"><a href="#Terraform-testing-library" class="headerlink" title="Terraform testing library"></a>Terraform testing library</h2><p>When tasked to write a terraform plugin, I was concerned with how to test it. I didn’t find much that addressed the following question:</p>
+<p><em>When I run terraform, how do I determine what happened?</em></p>
+<p>So I wrote something, you can find it here at <a target="_blank" rel="noopener" href="https://github.com/erikh/tftest">erikh&#x2F;tftest</a>. <code>tftest</code> is ultra-alpha and I recommend you stare at it twice before trying to use it. That said, what it accomplishes are:</p>
+<ul>
+<li>Managing terraform runs in an automated fashion<ul>
+<li><code>init</code>, <code>apply</code>, <code>refresh</code>, and <code>destroy</code> are covered</li>
+</ul>
+</li>
+<li>Automated examination of tfstate, easy to get from a single call (as a <code>map[string]interface&#123;&#125;</code>)</li>
+<li>Signal handling is covered, with automated cleanup&#x2F;destroy on all failures&#x2F;cancellations</li>
+<li>Integrating with golang’s <code>testing</code> library is also covered; it will automatically schedule a <code>Destroy</code> after you apply in the <code>*testing.T.Cleanup()</code> system.</li>
+</ul>
+<p>It is a spiritual companion to <a target="_blank" rel="noopener" href="https://github.com/erikh/duct">erikh&#x2F;duct</a>, if you need something like that for docker.</p>
+<h2 id="A-Schema-Wrapper-package"><a href="#A-Schema-Wrapper-package" class="headerlink" title="A Schema Wrapper package"></a>A Schema Wrapper package</h2><p>The schema wrapper (SchemaWrap and ValidatedSchema) is printed below. Summarily, it manages the conversion of types, the validation of types before they ever reach terraform or the API hit, and generally treats terraform as a write-through cache, keeping all operations a few lines of code away from synchronization in your logic at all times. The goal of the schema wrapper is to remove as much boilerplate as possible when dealing with properties of a resource.</p>
+<h3 id="Source"><a href="#Source" class="headerlink" title="Source"></a>Source</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This is printed from the ZeroTier provider linked below, and licensed under a BSD 3-Clause license.</span></span><br><span class="line"><span class="keyword">package</span> schemawrap</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;errors&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;github.com/hashicorp/terraform-plugin-sdk/v2/diag&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// ValidatedSchema is an internal schema for validating and managing lots of</span></span><br><span class="line"><span class="comment">// schema parameters. It is intended to be a more-or-less write-through cache</span></span><br><span class="line"><span class="comment">// of terraform information with validation and conversion along the way.</span></span><br><span class="line"><span class="keyword">type</span> ValidatedSchema <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Schema is our schema. The key is the name. See SchemaWrap for more information.</span></span><br><span class="line">	Schema <span class="keyword">map</span>[<span class="type">string</span>]*SchemaWrap</span><br><span class="line">	<span class="comment">// Should be programmed to yield the type at Yield time.</span></span><br><span class="line">	YieldFunc <span class="function"><span class="keyword">func</span><span class="params">(ValidatedSchema)</span></span> <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	<span class="comment">// Should be programmed to populate the validated schema with Set calls.</span></span><br><span class="line">	CollectFunc <span class="function"><span class="keyword">func</span><span class="params">(ValidatedSchema, *schema.ResourceData, <span class="keyword">interface</span>&#123;&#125;)</span></span> diag.Diagnostics</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// SchemaWrap wraps the terraform schema with validators and converters.</span></span><br><span class="line"><span class="keyword">type</span> SchemaWrap <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Schema is the terraform schema.</span></span><br><span class="line">	Schema *schema.Schema</span><br><span class="line">	<span class="comment">// ValidatorFunc is a function, that if supplied, validates the data and</span></span><br><span class="line">	<span class="comment">// yields an error if the function returns one.</span></span><br><span class="line">	ValidatorFunc <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">interface</span>&#123;&#125;)</span></span> diag.Diagnostics</span><br><span class="line">	<span class="comment">// FromTerraformFunc converts data from terraform plans to the Value (see</span></span><br><span class="line">	<span class="comment">// below). It returns an error if it had trouble.</span></span><br><span class="line">	FromTerraformFunc <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">interface</span>&#123;&#125;)</span></span> (<span class="keyword">interface</span>&#123;&#125;, diag.Diagnostics)</span><br><span class="line">	<span class="comment">// ToTerraformFunc converts data from the Value to the terraform</span></span><br><span class="line">	<span class="comment">// representation. This must *always* succeed (in practice, this has not been</span></span><br><span class="line">	<span class="comment">// an issue at this time)</span></span><br><span class="line">	ToTerraformFunc <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">interface</span>&#123;&#125;)</span></span> <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	<span class="comment">// EqualFunc is used in comparisons, which are used in determining if changes</span></span><br><span class="line">	<span class="comment">// need to be pushed to our API.</span></span><br><span class="line">	EqualFunc <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">interface</span>&#123;&#125;, <span class="keyword">interface</span>&#123;&#125;)</span></span> <span class="type">bool</span></span><br><span class="line">	<span class="comment">// Value is the internal value; this is a representation suitable for using</span></span><br><span class="line">	<span class="comment">// in both ValidatedSchema.YieldFunc() and ValidatedSchema.CollectFunc</span></span><br><span class="line">	<span class="comment">// interchangeably, as in, they can be type asserted without panicking.</span></span><br><span class="line">	Value <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sw *SchemaWrap)</span></span> Clone() *SchemaWrap &#123;</span><br><span class="line">	val, err := sw.Schema.DefaultValue()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> &amp;SchemaWrap&#123;</span><br><span class="line">		Value:             val,</span><br><span class="line">		Schema:            sw.Schema,</span><br><span class="line">		ValidatorFunc:     sw.ValidatorFunc,</span><br><span class="line">		FromTerraformFunc: sw.FromTerraformFunc,</span><br><span class="line">		ToTerraformFunc:   sw.ToTerraformFunc,</span><br><span class="line">		EqualFunc:         sw.EqualFunc,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> Clone() ValidatedSchema &#123;</span><br><span class="line">	vs2 := ValidatedSchema&#123;</span><br><span class="line">		Schema:      <span class="keyword">map</span>[<span class="type">string</span>]*SchemaWrap&#123;&#125;,</span><br><span class="line">		YieldFunc:   vs.YieldFunc,</span><br><span class="line">		CollectFunc: vs.CollectFunc,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> key, sw := <span class="keyword">range</span> vs.Schema &#123;</span><br><span class="line">		vs2.Schema[key] = sw.Clone()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> vs2</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TerraformSchema returns the unadulterated schema for use by terraform.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> TerraformSchema() <span class="keyword">map</span>[<span class="type">string</span>]*schema.Schema &#123;</span><br><span class="line">	res := <span class="keyword">map</span>[<span class="type">string</span>]*schema.Schema&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> k, v := <span class="keyword">range</span> vs.Schema &#123;</span><br><span class="line">		res[k] = v.Schema</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> res</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// CollectFromTerraform collects all the properties listed in the validated schema, converts</span></span><br><span class="line"><span class="comment">// &amp; validates them, and makes this object available for further use. Failure</span></span><br><span class="line"><span class="comment">// to call this method before others on the same transaction may result in</span></span><br><span class="line"><span class="comment">// undefined behavior.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> CollectFromTerraform(d *schema.ResourceData) diag.Diagnostics &#123;</span><br><span class="line">	<span class="keyword">for</span> key, sw := <span class="keyword">range</span> vs.Schema &#123;</span><br><span class="line">		<span class="keyword">var</span> (</span><br><span class="line">			res <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">			err diag.Diagnostics</span><br><span class="line">		)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> sw.FromTerraformFunc != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> res, err = sw.FromTerraformFunc(d.Get(key)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			res = d.Get(key)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> sw.ValidatorFunc != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err := sw.ValidatorFunc(res); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		sw.Value = res</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// CollectFromObject is a pre-programmed call on the struct which accepts the</span></span><br><span class="line"><span class="comment">// known object and sets all the values appropriately.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> CollectFromObject(d *schema.ResourceData, i <span class="keyword">interface</span>&#123;&#125;) diag.Diagnostics &#123;</span><br><span class="line">	<span class="keyword">return</span> vs.CollectFunc(vs, d, i)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get retrieves the set value inside the schema.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> Get(key <span class="type">string</span>) <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">	<span class="keyword">return</span> vs.Schema[key].Value</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Set a value in terraform. This goes through our validation &amp; conversion</span></span><br><span class="line"><span class="comment">// first.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> Set(d *schema.ResourceData, key <span class="type">string</span>, value <span class="keyword">interface</span>&#123;&#125;) diag.Diagnostics &#123;</span><br><span class="line">	sw := vs.Schema[key]</span><br><span class="line">	<span class="keyword">if</span> sw == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> diag.FromErr(errors.New(<span class="string">&quot;invalid key, plugin error&quot;</span>))</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> sw.ValidatorFunc != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := sw.ValidatorFunc(value); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> sw.ToTerraformFunc != <span class="literal">nil</span> &#123;</span><br><span class="line">		value = sw.ToTerraformFunc(value)</span><br><span class="line">		<span class="keyword">if</span> err := d.Set(key, value); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> diag.FromErr(err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := d.Set(key, value); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> diag.FromErr(err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sw.Value = value</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Yield yields the type on request.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(vs ValidatedSchema)</span></span> Yield() <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">	<span class="keyword">return</span> vs.YieldFunc(vs)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h3><p>The <a target="_blank" rel="noopener" href="https://github.com/zerotier/terraform-provider-zerotier">ZeroTier Terraform Provider</a> makes use of this code as well as implementing several resources atop it. Let’s take a look at the <code>zerotier_network</code> resource which makes heavy usage of the pattern.</p>
+<p>An example of its use, taken from the README:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">resource &quot;zerotier_network&quot; &quot;occams_router&quot; &#123;</span><br><span class="line">  name        = &quot;occams_router&quot;</span><br><span class="line">  description = &quot;The prefix with largest number of bits is usually correct&quot;</span><br><span class="line">  assignment_pool &#123;</span><br><span class="line">    cidr = &quot;10.1.0.0/24&quot;</span><br><span class="line">  &#125;</span><br><span class="line">  route &#123;</span><br><span class="line">    target = &quot;10.1.0.0/24&quot;</span><br><span class="line">  &#125;</span><br><span class="line">  flow_rules = &quot;accept;&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>We can see that several properties are set; some of these are scalars, and some complex types. Let’s take a brief look at how they’re implemented:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/zerotier/terraform-provider-zerotier/blob/master/pkg/zerotier/ztnetwork.go">SchemaWrap implementation</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/zerotier/terraform-provider-zerotier/blob/master/pkg/zerotier/resource_network.go">Standard Resource Code</a></li>
+</ul>
+<p>Quickly we should notice that we are constructing global singletons and cloning them. Each time the struct is referred to in the resource code, it is cloned with the <code>Clone()</code> method to avoid corruption. This is not the best part of this design, and if you don’t like it, replacing with a constructor + static return is easy, at a minor if at all noticeable cost to perf in almost all situations.</p>
+<p>Let’s take a look at our resource definition for the <code>zerotier_network</code> resource. This function is called during provider definition, and yields the schema to it. The notable thing here is the reference to <code>TerraformSchema()</code>, which is a convenience method to return the pre-defined schema.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">resourceNetwork</span><span class="params">()</span></span> *schema.Resource &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;schema.Resource&#123;</span><br><span class="line">		Description:   <span class="string">&quot;Network provider for ZeroTier, allows you to create ZeroTier networks.&quot;</span>,</span><br><span class="line">		CreateContext: resourceNetworkCreate,</span><br><span class="line">		ReadContext:   resourceNetworkRead,</span><br><span class="line">		UpdateContext: resourceNetworkRead, <span class="comment">// schemawrap makes these equivalent</span></span><br><span class="line">		DeleteContext: resourceNetworkDelete,</span><br><span class="line">		Schema:        ZTNetwork.TerraformSchema(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>If we look in the create function, we can see the integration of SchemaWrap through the <code>ZTNetwork</code> definition:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">resourceNetworkCreate</span><span class="params">(ctx context.Context, d *schema.ResourceData, m <span class="keyword">interface</span>&#123;&#125;)</span></span> diag.Diagnostics &#123;</span><br><span class="line">	ztn := ZTNetwork.Clone()</span><br><span class="line">	<span class="keyword">if</span> err := ztn.CollectFromTerraform(d); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c := m.(*ztcentral.Client)</span><br><span class="line">	net := ztn.Yield().(*ztcentral.Network)</span><br><span class="line">	rules := net.RulesSource</span><br><span class="line"></span><br><span class="line">	n, err := c.NewNetwork(ctx, net.Config.Name, net)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> []diag.Diagnostic&#123;&#123;</span><br><span class="line">			Severity: diag.Error,</span><br><span class="line">			Summary:  <span class="string">&quot;Unable to create ZeroTier Network&quot;</span>,</span><br><span class="line">			Detail:   fmt.Sprintf(<span class="string">&quot;CreateNetwork returned error: %v&quot;</span>, err),</span><br><span class="line">		&#125;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> _, err := c.UpdateNetworkRules(ctx, n.ID, rules); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> diag.FromErr(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	d.SetId(n.ID)</span><br><span class="line">	d.Set(<span class="string">&quot;tf_last_updated&quot;</span>, time.Now().Unix())</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> resourceNetworkRead(ctx, d, m)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>This:</p>
+<ol>
+<li>Copies everything from terraform into the schemawrap ingester</li>
+<li>Returns a <code>ztcentral.Network</code> via the yield function in schemawrap (we’ll discuss this in a minute)</li>
+<li>Manipulates the remote resource with the <code>Network</code> struct to the ZeroTier API</li>
+</ol>
+<p>After that, the Read function takes over:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">resourceNetworkRead</span><span class="params">(ctx context.Context, d *schema.ResourceData, m <span class="keyword">interface</span>&#123;&#125;)</span></span> diag.Diagnostics &#123;</span><br><span class="line">	c := m.(*ztcentral.Client)</span><br><span class="line">	<span class="keyword">var</span> diags diag.Diagnostics</span><br><span class="line"></span><br><span class="line">	ztNetworkID := d.Id()</span><br><span class="line">	ztNetwork, err := c.GetNetwork(ctx, ztNetworkID)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		diags = <span class="built_in">append</span>(diags, diag.Diagnostic&#123;</span><br><span class="line">			Severity: diag.Error,</span><br><span class="line">			Summary:  <span class="string">&quot;Unable to read ZeroTier Network&quot;</span>,</span><br><span class="line">			Detail:   fmt.Sprintf(<span class="string">&quot;GetNetwork returned error: %v&quot;</span>, err),</span><br><span class="line">		&#125;)</span><br><span class="line">		<span class="keyword">return</span> diags</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ZTNetwork.Clone().CollectFromObject(d, ztNetwork)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>This calls another important method called <code>CollectFromObject</code>, which is the inverse of <code>CollectFromTerraform</code>, but with a synchronization heuristic; it will apply everything to terraform, and let terraform sort out what changed, allowing it to do what it’s good at!</p>
+<h4 id="Yielding-and-Collecting"><a href="#Yielding-and-Collecting" class="headerlink" title="Yielding and Collecting"></a>Yielding and Collecting</h4><p>Subsequently, if we go to <code>ztnetwork.go</code>, we can see that there are several methods in it, and a type definition previously mentioned called <code>ZTNetwork</code> at the bottom. While also containing value checking and type conversion, there are two very critical methods near the top called <code>ztNetworkYield</code> and <code>ztNetworkCollect</code>. You may also see them referred to in the <code>ZTNetwork</code> struct.</p>
+<p>Basically, the rules are as thus:</p>
+<p>You always <em>yield</em> the <em>native type</em>, or the non-terraform type you wish to incorporate to “define” your resource and distinguish it from others. Yielding must always succeed; if you are panicking while yielding, something is probably not defaulted correctly.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ztNetworkYield</span><span class="params">(vs ValidatedSchema)</span></span> <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;ztcentral.Network&#123;</span><br><span class="line">		ID:          vs.Get(<span class="string">&quot;id&quot;</span>).(<span class="type">string</span>),</span><br><span class="line">		RulesSource: vs.Get(<span class="string">&quot;flow_rules&quot;</span>).(<span class="type">string</span>),</span><br><span class="line">		Config: ztcentral.NetworkConfig&#123;</span><br><span class="line">			Name:             vs.Get(<span class="string">&quot;name&quot;</span>).(<span class="type">string</span>),</span><br><span class="line">			IPAssignmentPool: vs.Get(<span class="string">&quot;assignment_pool&quot;</span>).([]ztcentral.IPRange),</span><br><span class="line">			Routes:           vs.Get(<span class="string">&quot;route&quot;</span>).([]ztcentral.Route),</span><br><span class="line">			IPV4AssignMode:   vs.Get(<span class="string">&quot;assign_ipv4&quot;</span>).(*ztcentral.IPV4AssignMode),</span><br><span class="line">			IPV6AssignMode:   vs.Get(<span class="string">&quot;assign_ipv6&quot;</span>).(*ztcentral.IPV6AssignMode),</span><br><span class="line">			EnableBroadcast:  boolPtr(vs.Get(<span class="string">&quot;enable_broadcast&quot;</span>).(<span class="type">bool</span>)),</span><br><span class="line">			MTU:              vs.Get(<span class="string">&quot;mtu&quot;</span>).(<span class="type">int</span>),</span><br><span class="line">			MulticastLimit:   vs.Get(<span class="string">&quot;multicast_limit&quot;</span>).(<span class="type">int</span>),</span><br><span class="line">			Private:          boolPtr(vs.Get(<span class="string">&quot;private&quot;</span>).(<span class="type">bool</span>)),</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>You <em>collect</em> from two data sources: the <em>native type</em> and <em>terraform</em>. The two “Collect” calls above define the two directions collections can go in; both have an intrinsic write-through cache: the native type. The collect hook in <code>ztnetwork.go</code> does the rest of it. Note that unlike Yield, collections can error out. This is because validations and conversions happen at this time.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ztNetworkCollect</span><span class="params">(vs ValidatedSchema, d *schema.ResourceData, i <span class="keyword">interface</span>&#123;&#125;)</span></span> diag.Diagnostics &#123;</span><br><span class="line">	ztNetwork := i.(*ztcentral.Network)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> diags diag.Diagnostics</span><br><span class="line"></span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;id&quot;</span>, ztNetwork.ID)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;flow_rules&quot;</span>, ztNetwork.RulesSource)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;name&quot;</span>, ztNetwork.Config.Name)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;mtu&quot;</span>, ztNetwork.Config.MTU)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;creation_time&quot;</span>, ztNetwork.Config.CreationTime)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;route&quot;</span>, ztNetwork.Config.Routes)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;assignment_pool&quot;</span>, ztNetwork.Config.IPAssignmentPool)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;enable_broadcast&quot;</span>, ptrBool(ztNetwork.Config.EnableBroadcast))...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;multicast_limit&quot;</span>, ztNetwork.Config.MulticastLimit)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;private&quot;</span>, ptrBool(ztNetwork.Config.Private))...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;assign_ipv4&quot;</span>, ztNetwork.Config.IPV4AssignMode)...)</span><br><span class="line">	diags = <span class="built_in">append</span>(diags, vs.Set(d, <span class="string">&quot;assign_ipv6&quot;</span>, ztNetwork.Config.IPV6AssignMode)...)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> diags</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>This implementation could probably be golfed around populating <code>diags</code> a bit, but otherwise feels very simple and compact to me. The <code>ValidatedSchema</code> implementation manages the write-through properties.</p>
+<h4 id="Validations-and-Conversions"><a href="#Validations-and-Conversions" class="headerlink" title="Validations and Conversions"></a>Validations and Conversions</h4><p>I think most people reading this article know what these are, so I won’t spend too much time on it, but fundamentally we slightly extend the schema with Validations that happen earlier than Terraform’s do, as well as conversions that always result in the <em>native type</em> being stored; this way we can always <em>yield</em> without fear of the assertions ever panicking. It also means we can spend less time worrying about how to store complicated data, because the API is already doing that job for us. The conversions are in <a target="_blank" rel="noopener" href="https://github.com/zerotier/terraform-provider-zerotier/blob/master/pkg/zerotier/converters.go">converters.go</a>, if you want to see how they work.</p>
+<h1 id="Impressions"><a href="#Impressions" class="headerlink" title="Impressions"></a>Impressions</h1><p>The Terraform ecosystem is arguably still young, but the tooling is solid in lieu of some rougher edges around release cadence.</p>
+<p>I would like to see a better solution to types, but Golang is only so capable for this case and honestly, this isn’t too bad, just exceptionally wordy.</p>
+<p>I would <em>really</em> like to see more tooling come out of Hashicorp that can do 95% of ingesting an API directly into terraform. There’s a great opportunity for someone to do something exciting between terraform and openapi, I think; which would open zillions of doors for terraform users. A lot of the back&#x2F;forth between terraform and API calls doesn’t seem as necessary as it might be. I think this is more a reflection on the maturity of the libraries (which again, is really pretty great) than any myopia on the part of the creators. Or Maybe, I’m just terrible at Google. Also possible.</p>
+<p>Anyway, thank you for reading. I hope you found this helpful!</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Programming/" rel="tag"># Programming</a>
+              <a href="/tags/Golang/" rel="tag"># Golang</a>
+              <a href="/tags/Terraform/" rel="tag"># Terraform</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/01/25/Compiler-driven-Development-with-Golang/" rel="prev" title="Compiler-driven Development with Golang">
+                  <i class="fa fa-chevron-left"></i> Compiler-driven Development with Golang
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/04/28/Moving-to-Wayland-with-Sway/" rel="next" title="Moving to Wayland (with Sway)">
+                  Moving to Wayland (with Sway) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Erik Hollensbe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

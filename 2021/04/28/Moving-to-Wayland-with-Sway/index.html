@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.0.0-rc1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"erik.hollensbe.org","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Wayland provides a lot of fine enhancements over X11 and xorg, which has tried hard to maintain a protocol older than most of the people that will probably read this. Some of the things it brings:  Co">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Moving to Wayland (with Sway)">
+<meta property="og:url" content="http://erik.hollensbe.org/2021/04/28/Moving-to-Wayland-with-Sway/index.html">
+<meta property="og:site_name" content="Hmm">
+<meta property="og:description" content="Wayland provides a lot of fine enhancements over X11 and xorg, which has tried hard to maintain a protocol older than most of the people that will probably read this. Some of the things it brings:  Co">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://erik.hollensbe.org/assets/img/battlestation.jpg">
+<meta property="og:image" content="http://erik.hollensbe.org/assets/img/wayland-screenshot.png">
+<meta property="article:published_time" content="2021-04-29T05:27:45.000Z">
+<meta property="article:modified_time" content="2021-04-29T10:44:00.000Z">
+<meta property="article:author" content="Erik Hollensbe">
+<meta property="article:tag" content="Computing">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://erik.hollensbe.org/assets/img/battlestation.jpg">
+
+
+<link rel="canonical" href="http://erik.hollensbe.org/2021/04/28/Moving-to-Wayland-with-Sway/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://erik.hollensbe.org/2021/04/28/Moving-to-Wayland-with-Sway/","path":"2021/04/28/Moving-to-Wayland-with-Sway/","title":"Moving to Wayland (with Sway)"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Moving to Wayland (with Sway) | Hmm</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Hmm</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">A Technical Blog by Erik Hollensbe</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Hardware"><span class="nav-number">1.</span> <span class="nav-text">Hardware</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Starting-Software"><span class="nav-number">2.</span> <span class="nav-text">Starting Software</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Installing"><span class="nav-number">3.</span> <span class="nav-text">Installing</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Configuration"><span class="nav-number">4.</span> <span class="nav-text">Configuration</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Initial-Configuration"><span class="nav-number">4.1.</span> <span class="nav-text">Initial Configuration</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Display-Support"><span class="nav-number">4.2.</span> <span class="nav-text">Display Support</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Locking"><span class="nav-number">4.3.</span> <span class="nav-text">Locking</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Status-Bars"><span class="nav-number">4.4.</span> <span class="nav-text">Status Bars</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Putting-it-all-together"><span class="nav-number">5.</span> <span class="nav-text">Putting it all together</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Electron-Apps"><span class="nav-number">5.1.</span> <span class="nav-text">Electron Apps</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Other-things"><span class="nav-number">5.2.</span> <span class="nav-text">Other things:</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Thanks"><span class="nav-number"></span> <span class="nav-text">Thanks!</span></a></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Erik Hollensbe"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">Erik Hollensbe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/erikh" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;erikh" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:erik+blog@hollensbe.org" title="E-Mail → mailto:erik+blog@hollensbe.org" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://erik.hollensbe.org/2021/04/28/Moving-to-Wayland-with-Sway/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Erik Hollensbe">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hmm">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Moving to Wayland (with Sway) | Hmm">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Moving to Wayland (with Sway)
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-04-28 22:27:45" itemprop="dateCreated datePublished" datetime="2021-04-28T22:27:45-07:00">2021-04-28</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2021-04-29 03:44:00" itemprop="dateModified" datetime="2021-04-29T03:44:00-07:00">2021-04-29</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><a target="_blank" rel="noopener" href="https://wayland.freedesktop.org/">Wayland</a> provides a lot of fine enhancements over X11 and xorg, which has tried hard to maintain a protocol older than most of the people that will probably read this. Some of the things it brings:</p>
+<ul>
+<li><strong>Composition</strong>: While <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Compositing_window_manager">there is a specific meaning for compositing window manager</a>, this is more frequently used as a bucket term for a number of technologies that use the 3-D features of your graphics card to provide enhanced visual effects, such as V-Sync on fast output, transparency, and a few other things.</li>
+<li><strong>Simplification &amp; Integration</strong>: Wayland puts more control of the operating system in the hands of the window manager, allowing it to function more like a cohesive product, instead of two things that happen to work together: a consequence of the X11 client&#x2F;server architecture.</li>
+<li><strong>Performance</strong>: all this adds up to a nice healthy performance boost. Personally, I’ve seen my idle CPU usage drop by about 8% or so on a i7-8790k.</li>
+</ul>
+<p>You heard that right: it’s <em>faster</em>, it’s <em>smarter</em> and it’s even <em>prettier</em>. So why isn’t it more used?</p>
+<p>It’s a little less mature than most people would accept, but with the adoption of it in several major Linux desktop providers and the ubiquitous <a target="_blank" rel="noopener" href="https://gnome.org/">GNOME</a> desktop environment, it is gaining rapid maturity. I have caused two crashes while configuring the thing, and experienced one while not expecting something bad as of this writing (about 24h in).</p>
+<p>That said, today we’re not using GNOME. We’re using something else, called <a target="_blank" rel="noopener" href="https://swaywm.org/">Sway</a>. Sway is much like <a target="_blank" rel="noopener" href="https://i3wm.org/">i3</a> down to the point where it will <em>ingest most of i3’s configuration file</em>. As an i3 user, I found this an attractive and low-risk way to test Wayland. After all, I could always just go back to i3 and X; but my configuration is somewhat complicated to build, and a 3 day configuration festival was not in the cards this time… I have shit to do! Sway’s “close-enough” parsing of i3’s configuration was exactly what I needed to make the trial run fast.</p>
+<p>What follows is my journey into the vortex of GUI configuration, a black hole for many software developers, leeching the light and breath out of many of you that would rather be doing anything else. I took this bullet for you.</p>
+<h2 id="Hardware"><a href="#Hardware" class="headerlink" title="Hardware"></a>Hardware</h2><p>Let’s talk about hardware really quick. <a target="_blank" rel="noopener" href="https://www.phoronix.com/scan.php?page=news_item&px=NVIDIA-470-Wayland-Friendly">Graphics cards matter</a>. For now, I strongly recommend getting a low end, current generation AMD Radeon. I have a 5500. If you want to play games, go up, but you want a Radeon for now.</p>
+<p>My setup is different than many, and a picture is worth a thousand words, so:</p>
+<p><img src="/assets/img/battlestation.jpg" alt="my battlestation"></p>
+<p>Here lies:</p>
+<ul>
+<li>Three 4k monitors in portrait mode, this is 2160 x 3840 in effect, a set of numbers we’ll see more useful as we dive the configuration. Sway does not support this configuration natively, (neither does X or i3, really, fwiw) so shoving it into place is an exercise we’ll touch on later.</li>
+<li>One ZSA Moonlander and one Apple Magic Trackpad. These only matter because I had to do next to nothing to get these to work exactly as I’d like them to. Sway and Wayland had the goods configured right, and it does help that the keyboard is firmware-programmable.</li>
+<li>The video card as previously mentioned is a Radeon 5500. Other kit doesn’t matter much; it’s fast. The machine has 32GB of RAM, but even with all apps loaded it idles at around 5-6GB without any extra VM work or lots of browser tabs, etc.</li>
+</ul>
+<h2 id="Starting-Software"><a href="#Starting-Software" class="headerlink" title="Starting Software"></a>Starting Software</h2><p>If you’re playing the at-home game:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://manjaro.org/">Manjaro GNOME</a> 21.0.3 w&#x2F; <code>linux511</code> 5.11 kernel package. <code>5.11.16-2-MANJARO</code> is currently in use.<ul>
+<li>Arch probably works here but some of the package names may be different, or come with different default configuration.</li>
+</ul>
+</li>
+<li>i3 is configured and ready to work (but this is not necessary to follow along). GNOME is mostly left untouched.</li>
+</ul>
+<h2 id="Installing"><a href="#Installing" class="headerlink" title="Installing"></a>Installing</h2><p>The Manjaro&#x2F;Arch packages we need are:</p>
+<ul>
+<li>sway (window manager)</li>
+<li>swaylock (desktop locker)</li>
+<li>swayidle (idle management, powers of screens, locks computer)</li>
+<li>waybar (status bar)</li>
+<li>alacritty (terminal)</li>
+<li>mako (notification daemon)</li>
+</ul>
+<p><em>Plenty</em> of other dependencies will be pulled in; don’t worry, you’re not getting off that easy.</p>
+<h2 id="Configuration"><a href="#Configuration" class="headerlink" title="Configuration"></a>Configuration</h2><p>Configuring Sway is much like configuring i3; some of the commands are different, however, especially around the I&#x2F;O systems (your keyboard and your monitors, for example). Please review the following manual pages for more information on configuration:</p>
+<ul>
+<li><code>man 5 sway</code>: this is most of the configuration language. The <code>sway</code> binary can also be used to execute these statements as standalone commands, as we will see soon.</li>
+<li><code>man 5 swaymsg</code>: this is a tool used to query sway, which you will use to configure your displays later.</li>
+<li><code>man 5 sway-output</code>: a manual page just for the output subcommand.</li>
+</ul>
+<p>Those are the ones we will need to complete this post, but there are others such as the ones for <code>swaylock</code> and other associated tools, as well as more for <code>sway</code> itself.</p>
+<h3 id="Initial-Configuration"><a href="#Initial-Configuration" class="headerlink" title="Initial Configuration"></a>Initial Configuration</h3><p>Start with the <a target="_blank" rel="noopener" href="https://github.com/swaywm/sway/blob/master/config.in">defaults</a>. This will fit the documentation better, most of my tweaks aren’t very useful to anyone but me. Instead of providing a full configuring for you to pick through, we’ll highlight parts of the configuration that were sticky instead.</p>
+<h3 id="Display-Support"><a href="#Display-Support" class="headerlink" title="Display Support"></a>Display Support</h3><p>Display support is mainly covered by the <code>output</code> configuration directive, and is used in configuration to set the initial layout, but <em>also</em>, you can use it to manipulate the video on the fly similar to the <code>xrandr</code> tool for X11.</p>
+<p>In my case, I need to set up the three monitors so that they are occupying enough space – a problem with sway is that all of the displays seem to require being set at the initial rotation that Wayland set them to; you cannot adjust this directly in the configuration file.</p>
+<p>Instead, we allocate enough space for them to rotate themselves, assuming we will do that as a part of our login. What a mess, right? Maybe eventually this can be resolved.</p>
+<p>Anyway, we can do this with the following configuration for 3 vertical monitors:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">output DP-2 scale 2 pos 0 0</span><br><span class="line">output DP-1 scale 2 pos 1080 0</span><br><span class="line">output DP-3 scale 2 pos 2160 0</span><br></pre></td></tr></table></figure>
+
+<p>Note that we are splitting by 1080, not 2160 as mentioned prior; this is because of the <code>scale 2</code> argument transforming the virtual real-estate you have on your screen. If you are doing this yourself, you can query the names of your outputs with <code>swaymsg -t get_outputs</code>.</p>
+<p>The nice thing about this problem is it gets us to think about the orientation of these monitors, because they are all on arms that rotate, allowing us to manage them independently.</p>
+<p><a target="_blank" rel="noopener" href="https://gist.github.com/erikh/36db9fccea81d7a220905ce43e9541dc">This script</a> is what I use to manage the monitors:</p>
+<ul>
+<li>Keeps workspaces sticky to monitors, even after they have changed orientation. 1,4,7 are on monitor 1, 2,5,8 on 2, etc.</li>
+<li>Allows me to select what configuration I need:<ul>
+<li><code>share</code> moves to landscape orientation so I can more easily share my screen with others.</li>
+<li><code>fix</code> rights all the monitors in the expected portrait configuration.</li>
+<li><code>focus</code> turns the side monitors off for when chatter and other distractions are too much.</li>
+</ul>
+</li>
+</ul>
+<p>Note that the script runs the following commands:</p>
+<ul>
+<li><code>sway output &lt;output&gt; dpms on/off</code> - this controls the screen’s power state.</li>
+<li><code>sway output &lt;output&gt; enable/disable</code> - this controls the screen’s membership in the session; a disabled screen is basically power attached but not a part of the sway environment until re-enabled.</li>
+<li><code>sway output &lt;output&gt; transform &lt;normal/90 clockwise&gt;</code> - this is what transforms our screens. To avoid doing relative calculations, I reset it to normal first in a lot of instances.</li>
+</ul>
+<h3 id="Locking"><a href="#Locking" class="headerlink" title="Locking"></a>Locking</h3><p>For locking you can use <code>swaylock</code>, but this is best used with the <code>swayidle</code> tool that works as an idle detector (and therefore invokes autolock). Try these configuration lines:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">exec swayidle -w timeout 300 &#x27;swaylock -f -c 000000&#x27; timeout 600 &#x27;swaymsg &quot;output * dpms off&quot;&#x27; resume &#x27;swaymsg &quot;output * dpms on&quot;&#x27; before-sleep &#x27;swaylock -f -c 000000&#x27; lock &#x27;swaylock -f -c 000000&#x27;</span><br><span class="line">bindsym $mod+Ctrl+l exec --no-startup-id loginctl lock-session</span><br></pre></td></tr></table></figure>
+
+<p>This lock the screen after 5 minutes, turn the monitors off after 10, work with your laptop, and also <code>loginctl</code>, which we’ve assigned to <code>&lt;mod&gt;+Ctrl+l</code>.</p>
+<h3 id="Status-Bars"><a href="#Status-Bars" class="headerlink" title="Status Bars"></a>Status Bars</h3><p>For status bars, we’ve put together something using <a target="_blank" rel="noopener" href="https://github.com/Alexays/Waybar">waybar</a>. I’ve made a small tweak on <a target="_blank" rel="noopener" href="https://github.com/robertjk/dotfiles/tree/253b86442dae4d07d872e8b963fa33b5f8819594/.config/waybar">robertjk’s configuration</a> that you can find <a target="_blank" rel="noopener" href="https://gist.github.com/erikh/dbda692bc2a1781b15dfe84bdebef745">here</a>.</p>
+<h2 id="Putting-it-all-together"><a href="#Putting-it-all-together" class="headerlink" title="Putting it all together"></a>Putting it all together</h2><p>It looks like this! This screenshot was taken with <code>grim</code>, a Wayland screenshot tool. The colors are generated by <a target="_blank" rel="noopener" href="https://github.com/dylanaraps/pywal">pywal</a>.</p>
+<p><img src="/assets/img/wayland-screenshot.png" alt="screenshot!"></p>
+<h3 id="Electron-Apps"><a href="#Electron-Apps" class="headerlink" title="Electron Apps"></a>Electron Apps</h3><p>Electron apps, in particular don’t play very well with Wayland; this is an open issue that is being addressed, however.</p>
+<p>You can enable the “Ozone Platform” on some builds of Slack, at least, and that will allow you to enable Wayland:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slack --enable-features=UseOzonePlatform --ozone-platform=wayland</span><br></pre></td></tr></table></figure>
+
+<h3 id="Other-things"><a href="#Other-things" class="headerlink" title="Other things:"></a>Other things:</h3><ul>
+<li>You can just start <code>mako</code> to manage notifications; but it has tunables as well as a manual.</li>
+<li><code>rofi</code> is what I use for launching but it’s not technically a Wayland program I don’t think. Still good!</li>
+</ul>
+<h1 id="Thanks"><a href="#Thanks" class="headerlink" title="Thanks!"></a>Thanks!</h1><p>Thanks for reading!</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Computing/" rel="tag"># Computing</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/02/15/Driving-Terraform-Plugins-with-Write-Through-APIs/" rel="prev" title="Driving Terraform Plugins with Write-Through APIs">
+                  <i class="fa fa-chevron-left"></i> Driving Terraform Plugins with Write-Through APIs
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/05/31/Writing-a-DNS-Server-with-trust-dns/" rel="next" title="Writing a DNS Server with trust-dns">
+                  Writing a DNS Server with trust-dns <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Erik Hollensbe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

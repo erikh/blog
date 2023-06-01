@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.0.0-rc1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"erik.hollensbe.org","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Hi friends! Today I will be offering an article on how to write your own, specialized DNS server with the rust trust-dns toolkit. Why write a DNS server?It’s not necessary in a lot of situations. Most">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Writing a DNS Server with trust-dns">
+<meta property="og:url" content="http://erik.hollensbe.org/2023/05/31/Writing-a-DNS-Server-with-trust-dns/index.html">
+<meta property="og:site_name" content="Hmm">
+<meta property="og:description" content="Hi friends! Today I will be offering an article on how to write your own, specialized DNS server with the rust trust-dns toolkit. Why write a DNS server?It’s not necessary in a lot of situations. Most">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-06-01T03:40:01.000Z">
+<meta property="article:modified_time" content="2023-06-01T03:45:12.142Z">
+<meta property="article:author" content="Erik Hollensbe">
+<meta property="article:tag" content="dns">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://erik.hollensbe.org/2023/05/31/Writing-a-DNS-Server-with-trust-dns/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://erik.hollensbe.org/2023/05/31/Writing-a-DNS-Server-with-trust-dns/","path":"2023/05/31/Writing-a-DNS-Server-with-trust-dns/","title":"Writing a DNS Server with trust-dns"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Writing a DNS Server with trust-dns | Hmm</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Hmm</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">A Technical Blog by Erik Hollensbe</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Why-write-a-DNS-server"><span class="nav-number">1.</span> <span class="nav-text">Why write a DNS server?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Why-trust-dns-Why-not-BIND-or-ldns-or"><span class="nav-number">2.</span> <span class="nav-text">Why trust-dns? Why not BIND or ldns or?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#What-have-you-done-with-trust-dns"><span class="nav-number">3.</span> <span class="nav-text">What have you done with trust-dns?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Ok-I%E2%80%99m-sold-How-do-I-get-started"><span class="nav-number">4.</span> <span class="nav-text">Ok, I’m sold. How do I get started?</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#The-repository"><span class="nav-number">4.1.</span> <span class="nav-text">The repository</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Cargo-setup"><span class="nav-number">4.2.</span> <span class="nav-text">Cargo setup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Parsing-the-configuration"><span class="nav-number">4.3.</span> <span class="nav-text">Parsing the configuration</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generating-the-records"><span class="nav-number">4.4.</span> <span class="nav-text">Generating the records</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Start-of-Authority-Record"><span class="nav-number">4.4.1.</span> <span class="nav-text">Start of Authority Record</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#A-address-Records"><span class="nav-number">4.4.2.</span> <span class="nav-text">A (address) Records</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generating-the-Catalog"><span class="nav-number">4.5.</span> <span class="nav-text">Generating the Catalog</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Tying-it-all-together"><span class="nav-number">4.6.</span> <span class="nav-text">Tying it all together</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Running-and-Querying"><span class="nav-number">5.</span> <span class="nav-text">Running and Querying</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#How-fast-is-it"><span class="nav-number">6.</span> <span class="nav-text">How fast is it?</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Erik Hollensbe"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">Erik Hollensbe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/erikh" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;erikh" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:erik+blog@hollensbe.org" title="E-Mail → mailto:erik+blog@hollensbe.org" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://erik.hollensbe.org/2023/05/31/Writing-a-DNS-Server-with-trust-dns/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Erik Hollensbe">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hmm">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Writing a DNS Server with trust-dns | Hmm">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Writing a DNS Server with trust-dns
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2023-05-31 20:40:01 / Modified: 20:45:12" itemprop="dateCreated datePublished" datetime="2023-05-31T20:40:01-07:00">2023-05-31</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Hi friends! Today I will be offering an article on how to write your own, specialized DNS server with the rust <code>trust-dns</code> toolkit.</p>
+<h2 id="Why-write-a-DNS-server"><a href="#Why-write-a-DNS-server" class="headerlink" title="Why write a DNS server?"></a>Why write a DNS server?</h2><p>It’s not necessary in a lot of situations. Mostly, this article will be targeting situations like:</p>
+<ul>
+<li>You have a very specialized need for a DNS server, and want the minimum impact possible for an environment.</li>
+<li>You have very dynamic&#x2F;ever-changing needs, and wish to sync your DNS server with the source of truth to avoid a configuration management &#x2F; de-sync problem.</li>
+<li>You want better control over the performance of your DNS solution.</li>
+</ul>
+<h2 id="Why-trust-dns-Why-not-BIND-or-ldns-or"><a href="#Why-trust-dns-Why-not-BIND-or-ldns-or" class="headerlink" title="Why trust-dns? Why not BIND or ldns or?"></a>Why trust-dns? Why not BIND or ldns or?</h2><p>Services like BIND, CoreDNS, ldns, and even kubedns provide configuration-driven solutions to solving your problem. This is not a always a great solution when your configuration can change out-of-band, meaning that the change originated in a source that is not the configuration of the service. For example, a PostgreSQL database, an API you’re querying for more information about your hosts, or even a git repository. Something has to synchronize this configuration to the DNS service, and while continuous delivery pipelines are very nice these days, sometimes the amount of time they take to run is too slow, or simply impossible to do at a rate that matches the rate of change you want.</p>
+<p><code>trust-dns</code> provides its own server, a <code>named</code>-alike that has quite a numerous set of features and I strongly suggest you look at it. It is asynchronous, relying on the <a target="_blank" rel="noopener" href="https://crates.io/crates/tokio">tokio</a> toolkit, and multi-core aware as well. My simpler DNS servers based on the libraries yield upwards of 300,000 resolves&#x2F;sec on a Ryzen 5900X with zero failures; something that none of the above servers get close to boasting.</p>
+<p>Aside from all that, <code>trust-dns</code> has thankfully divided its components into numerous parts as independent rust crates, which you can import independently to get different bits of functionality. For example, the <a target="_blank" rel="noopener" href="https://crates.io/crates/trust-dns-server">trust-dns-server</a> package provides the server components, while <a target="_blank" rel="noopener" href="https://crates.io/crates/trust-dns-resolver">trust-dns-resolver</a> implements DNS resolver bits. To make a cache-free forwarder, one imports both, and bolts the resolver into the server. Very elegant and easy to use.</p>
+<h2 id="What-have-you-done-with-trust-dns"><a href="#What-have-you-done-with-trust-dns" class="headerlink" title="What have you done with trust-dns?"></a>What have you done with trust-dns?</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/zerotier/zeronsd">zeronsd</a>, which is a DNS server that stays in sync with your <a target="_blank" rel="noopener" href="https://www.zerotier.com/">ZeroTier</a> LAN configuration, providing names for your IP addresses of residents on the network. ZeroNSD is used by a lot of ZeroTier users.</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/erikh/polyresolver">polyresolver</a> which is a forwarding plane for multiple DNS servers based on the domain you’re trying to resolve, providing a sort-of “split horizon” DNS at the resolver level.</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/erikh/border.rs">border</a>, which is an experimental load balancer and DNS service with automated health checking and consensus. This is not ready for production.</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/erikh/nsbench">nsbench</a> is a DNS flooder &#x2F; benchmarker that uses the <code>trust-dns-resolver</code> toolkit.</li>
+<li>Internal projects at companies that needed a DNS server.</li>
+</ul>
+<h2 id="Ok-I’m-sold-How-do-I-get-started"><a href="#Ok-I’m-sold-How-do-I-get-started" class="headerlink" title="Ok, I’m sold. How do I get started?"></a>Ok, I’m sold. How do I get started?</h2><p>This article will start from no repository to a fully-fledged one. We will use a very specific version of <code>trust-dns</code> and a <code>Cargo.toml</code> to reflect that, hopefully ensuring that even though the dependencies may drift later, this code will still work. Upgrading your dependencies (and covering any API mismatch) should be a priority concern if you take the concepts used here into production.</p>
+<h3 id="The-repository"><a href="#The-repository" class="headerlink" title="The repository"></a>The repository</h3><p>It wouldn’t be very nice of me if I just made you cut and paste a bunch of crap into a file, so I created <a target="_blank" rel="noopener" href="https://github.com/erikh/examplens.rs">this repository</a> for your perusal. If you’d like to avoid the rest of the words and get right into the meat, that’s also up to you! It builds a binary called <code>examplens</code> that takes an <code>examplens.yaml</code> in the current directory for its configuration, which is parsed with <a target="_blank" rel="noopener" href="https://crates.io/crates/serde">serde</a> and <a target="_blank" rel="noopener" href="https://crates.io/crates/serde_yaml">serde_yaml</a>. <code>examplens</code> just overwrites DNS entries provided in domain root -&gt; A record format, for example:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">example.com:</span></span><br><span class="line">    <span class="attr">foo.example.com:</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.2</span></span><br></pre></td></tr></table></figure>
+
+<p>Will resolve <code>foo.example.com</code> at <code>127.0.0.2</code>.</p>
+<h3 id="Cargo-setup"><a href="#Cargo-setup" class="headerlink" title="Cargo setup"></a>Cargo setup</h3><p>The rest of this tutorial assumes you are starting from scratch. If you’d rather follow along by cloning the repository and opening files, you’re welcome to do that, too!</p>
+<p>First off, to create the repository, we use <code>cargo new --bin examplens</code>.</p>
+<p>To fill <code>Cargo.toml</code>‘s dependencies, we’re going to be quite prescriptive in our dependency settings, so this project works without me having to maintain this blog article. :) A nice feature of cargo is that it’s really, really good at doing stuff like this.</p>
+<p>The <code>dependencies</code> section should look like this:</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">serde</span> = <span class="string">&quot;^1&quot;</span></span><br><span class="line"><span class="attr">serde_yaml</span> = <span class="string">&quot;^0.9&quot;</span></span><br><span class="line"><span class="attr">anyhow</span> = <span class="string">&quot;^1.0.0&quot;</span></span><br><span class="line"><span class="attr">trust-dns-server</span> = &#123; version = <span class="string">&quot;^0.22.0&quot;</span>, features = [ <span class="string">&quot;trust-dns-resolver&quot;</span> ] &#125;</span><br><span class="line"><span class="attr">trust-dns-resolver</span> = &#123; version = <span class="string">&quot;^0.22.0&quot;</span>, features = [ <span class="string">&quot;tokio-runtime&quot;</span> ] &#125;</span><br><span class="line"><span class="attr">tokio</span> = &#123; version = <span class="string">&quot;^1.28.0&quot;</span>, features = [ <span class="string">&quot;full&quot;</span> ] &#125;</span><br></pre></td></tr></table></figure>
+
+<p>To cover issues we’ve not discussed yet, We use <a target="_blank" rel="noopener" href="https://crates.io/crates/anyhow">anyhow</a> as a general error handler. This is much simpler than having to write error types for things we, well, don’t care too much about. <code>anyhow</code> will just make it easy to get the string error out of it, while still providing the error handling functionality we desire.</p>
+<p>We also add some features to <code>trust-dns-server</code>, namely integrated support for the resolver. This will pull it in automatically, but we need to pull it in manually to add deliberate <a target="_blank" rel="noopener" href="https://crates.io/crates/tokio">tokio</a> support, as we want to stay within the tokio runtime. If we did not do this, the resolver would resort to the synchronous version of the resolver, which would potentially block our resolves while it was out trying to forward queries.</p>
+<h3 id="Parsing-the-configuration"><a href="#Parsing-the-configuration" class="headerlink" title="Parsing the configuration"></a>Parsing the configuration</h3><p>I’m going to gloss over this fairly fast, as I don’t want this article to be a treatise on <code>serde</code>. Functionally, we define a tuple struct called <code>DNSName</code> which encapsulates the trust-dns <code>Name</code> type, which manages DNS names. Then, we write a simple serializer and deserializer for it which calls <code>Name::parse</code>, which is a RFC-compliant DNS name parser. This allows us to embed the names as strings in our YAML, and ensure that by the time they get to <code>trust-dns</code>, they are valid DNS names, as the program will complain and abort long before then if they aren’t. Code follows.</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone, Ord, PartialOrd, Eq, PartialEq)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">DNSName</span>(Name);</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Serialize</span> <span class="keyword">for</span> <span class="title class_">DNSName</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">serialize</span>&lt;S&gt;(&amp;<span class="keyword">self</span>, serializer: S) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;S::<span class="literal">Ok</span>, S::Error&gt;</span><br><span class="line">    <span class="keyword">where</span></span><br><span class="line">        S: serde::Serializer,</span><br><span class="line">    &#123;</span><br><span class="line">        serializer.<span class="title function_ invoke__">serialize_str</span>(&amp;<span class="keyword">self</span>.<span class="number">0</span>.<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">DNSNameVisitor</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Visitor</span>&lt;<span class="symbol">&#x27;_</span>&gt; <span class="keyword">for</span> <span class="title class_">DNSNameVisitor</span> &#123;</span><br><span class="line">    <span class="keyword">type</span> <span class="title class_">Value</span> = DNSName;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">expecting</span>(&amp;<span class="keyword">self</span>, formatter: &amp;<span class="keyword">mut</span> std::fmt::Formatter) <span class="punctuation">-&gt;</span> std::fmt::<span class="type">Result</span> &#123;</span><br><span class="line">        formatter.<span class="title function_ invoke__">write_str</span>(<span class="string">&quot;expecting a DNS name&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">visit_str</span>&lt;E&gt;(<span class="keyword">self</span>, v: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="keyword">Self</span>::Value, E&gt;</span><br><span class="line">    <span class="keyword">where</span></span><br><span class="line">        E: serde::de::Error,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(<span class="title function_ invoke__">DNSName</span>(<span class="keyword">match</span> Name::<span class="title function_ invoke__">parse</span>(v, <span class="literal">None</span>) &#123;</span><br><span class="line">            <span class="title function_ invoke__">Ok</span>(res) =&gt; res,</span><br><span class="line">            <span class="title function_ invoke__">Err</span>(e) =&gt; <span class="keyword">return</span> <span class="title function_ invoke__">Err</span>(serde::de::Error::<span class="title function_ invoke__">custom</span>(e)),</span><br><span class="line">        &#125;))</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;de</span>&gt; Deserialize&lt;<span class="symbol">&#x27;de</span>&gt; <span class="keyword">for</span> <span class="title class_">DNSName</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">deserialize</span>&lt;D&gt;(deserializer: D) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="keyword">Self</span>, D::Error&gt;</span><br><span class="line">    <span class="keyword">where</span></span><br><span class="line">        D: serde::Deserializer&lt;<span class="symbol">&#x27;de</span>&gt;,</span><br><span class="line">    &#123;</span><br><span class="line">        deserializer.<span class="title function_ invoke__">deserialize_str</span>(DNSNameVisitor)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>In our <code>main</code> function, we add just enough code to parse our YAML and present it as a <code>std::collections::BTreeMap</code> of data, starting with the domain apex and nesting into domain -&gt; DNS A records (IPv4 addresses). Since validation is handled by <code>serde</code>, all we need to do is specify the types and we can be assured they will be parsed correctly, or the program will fail to run.</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone, Default, Serialize, Deserialize)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Records</span>(BTreeMap&lt;DNSName, BTreeMap&lt;DNSName, Ipv4Addr&gt;&gt;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), anyhow::Error&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">f</span> = std::fs::OpenOptions::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    f.<span class="title function_ invoke__">read</span>(<span class="literal">true</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">io</span> = f.<span class="title function_ invoke__">open</span>(<span class="string">&quot;examplens.yaml&quot;</span>)?;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">_records</span>: Records = serde_yaml::<span class="title function_ invoke__">from_reader</span>(io)?;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Generating-the-records"><a href="#Generating-the-records" class="headerlink" title="Generating the records"></a>Generating the records</h3><p>Next, we’ll want to generate records. There are only two kinds of records we’re going to generate: <code>SOA</code>, or “Start of Authority” records, which define a domain apex, and <code>A</code>, or address records, which associate a name with one or more IPv4 addresses.</p>
+<p><code>trust-dns</code> accomplishes storing these records in a <code>Record</code> type, which has associated data. Then, since many DNS records are actually collections of results, stores each record in a <code>RecordSet</code> collection associated with the name. Finally, this is pushed into an <code>Authority</code>, which is then provided to the <code>Catalog</code>. <code>trust-dns</code> will happily serve your catalog for you without much instruction.</p>
+<h4 id="Start-of-Authority-Record"><a href="#Start-of-Authority-Record" class="headerlink" title="Start of Authority Record"></a>Start of Authority Record</h4><p>A SOA or “Start of Authority” record lives at the apex of the domain and controls many properties of the domain as a whole, including instructions to other name servers who might resolve through it, and how to behave with regards to caching, hammering the server, and so on.</p>
+<p>To create this record, let’s define a small routine that does so. This routine accepts a domain name and sets some reasonable defaults. The SOA type has a lot of properties, and some have very well-defined values. It is important to note at this time that a great deal of <code>trust-dns</code>‘s documentation covers the DNS RFCs as specified, so it’s not a bad idea to read the docs especially for the different types. You might just learn something. :)</p>
+<p>Note that we are creating a <code>Record</code> and <code>RecordSet</code>, setting data on the <code>Record</code>, then inserting it into the <code>RecordSet</code> with a static serial number. The TTL is 30 seconds, specified in a few places. In a real world scenario, TTLs and serials should probably be a lot easier to control external to the program.</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">generate_soa</span>(domain: DNSName) <span class="punctuation">-&gt;</span> RecordSet &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">rs</span> = RecordSet::<span class="title function_ invoke__">new</span>(&amp;domain.<span class="number">0</span>, trust_dns_server::proto::rr::RecordType::SOA, <span class="number">30</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">rec</span> = Record::<span class="title function_ invoke__">with</span>(</span><br><span class="line">        domain.<span class="number">0</span>.<span class="title function_ invoke__">clone</span>(),</span><br><span class="line">        trust_dns_server::proto::rr::RecordType::SOA,</span><br><span class="line">        <span class="number">30</span>,</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    rec.<span class="title function_ invoke__">set_data</span>(<span class="title function_ invoke__">Some</span>(trust_dns_server::proto::rr::RData::<span class="title function_ invoke__">SOA</span>(</span><br><span class="line">        trust_dns_server::proto::rr::rdata::SOA::<span class="title function_ invoke__">new</span>(</span><br><span class="line">            domain.<span class="number">0</span>.<span class="title function_ invoke__">clone</span>(),</span><br><span class="line">            Name::<span class="title function_ invoke__">from_utf8</span>(<span class="built_in">format!</span>(<span class="string">&quot;administrator.&#123;&#125;&quot;</span>, domain.<span class="number">0</span>)).<span class="title function_ invoke__">unwrap</span>(),</span><br><span class="line">            <span class="number">1</span>,</span><br><span class="line">            <span class="number">60</span>,</span><br><span class="line">            <span class="number">1</span>,</span><br><span class="line">            <span class="number">120</span>,</span><br><span class="line">            <span class="number">30</span>,</span><br><span class="line">        ),</span><br><span class="line">    )));</span><br><span class="line"></span><br><span class="line">    rs.<span class="title function_ invoke__">insert</span>(rec, <span class="number">1</span>);</span><br><span class="line">    rs</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="A-address-Records"><a href="#A-address-Records" class="headerlink" title="A (address) Records"></a>A (address) Records</h4><p>We do the same with the A record, only we’re going to accept the appropriate type for IPv4 addresses, which is unsurprisingly called <code>Ipv4Addr</code>. We do a similar dance here, where we create the <code>RecordSet</code>, and slam a <code>Record</code> into it. Most of <code>trust-dns</code> works this way.</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">generate_a</span>(name: DNSName, address: Ipv4Addr) <span class="punctuation">-&gt;</span> RecordSet &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v4rs</span> = RecordSet::<span class="title function_ invoke__">new</span>(&amp;name.<span class="number">0</span>, trust_dns_server::proto::rr::RecordType::A, <span class="number">30</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">rec</span> = Record::<span class="title function_ invoke__">with</span>(</span><br><span class="line">        name.<span class="number">0</span>.<span class="title function_ invoke__">clone</span>(),</span><br><span class="line">        trust_dns_server::proto::rr::RecordType::A,</span><br><span class="line">        <span class="number">30</span>,</span><br><span class="line">    );</span><br><span class="line">    rec.<span class="title function_ invoke__">set_data</span>(<span class="title function_ invoke__">Some</span>(trust_dns_server::proto::rr::RData::<span class="title function_ invoke__">A</span>(address)));</span><br><span class="line"></span><br><span class="line">    v4rs.<span class="title function_ invoke__">insert</span>(rec, <span class="number">1</span>);</span><br><span class="line">    v4rs</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Generating-the-Catalog"><a href="#Generating-the-Catalog" class="headerlink" title="Generating the Catalog"></a>Generating the Catalog</h3><p>Now that we have our <code>RecordSet</code>s, we can build the <code>Catalog</code>. To build the catalog, we’re going to create two <code>Authority</code> objects, which are of different types. The first will be our records, and the second will be a <code>ForwardAuthority</code> for all other domains which don’t match our records. This allows the DNS server to function as a forwarding plane for any records that aren’t ours, allowing it to be used as a DNS resolver, for example.</p>
+<p>For the <code>ForwardAuthority</code>, we need to define some upstream DNS servers. We just use <code>trust-dns</code>‘s excellent tooling to read the system’s <code>resolv.conf</code> and inject those for us. So now, your DNS server is not only throwing your records into the mix, but for anything that doesn’t match, it just goes to your normal DNS provider.</p>
+<p>An <code>InMemoryAuthority</code> is used, which is also provided by <code>trust-dns</code> for our convenience, which takes a well-formatted <code>BTreeMap</code> for it’s corpus. Since we’ve already created everything in <code>BTreeMap</code>s, this is an easy conversion. We need to simply convert the keys to <code>RrKey</code>s (RR is short for “resource record” and used in many parts of DNS) and associate them with the <code>RecordSet</code> we built.</p>
+<p>Once we’re done building these authorities, we <code>upsert</code> them into the catalog, and present the catalog to the caller of this function.</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">generate_catalog</span>(records: Records) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;Catalog, anyhow::Error&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">catalog</span> = Catalog::<span class="title function_ invoke__">default</span>();</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">for</span> (domain, recs) <span class="keyword">in</span> records.<span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">rc</span> = BTreeMap::<span class="title function_ invoke__">default</span>();</span><br><span class="line">        <span class="title function_ invoke__">for</span> (name, rec) <span class="keyword">in</span> recs &#123;</span><br><span class="line">            rc.<span class="title function_ invoke__">insert</span>(</span><br><span class="line">                RrKey::<span class="title function_ invoke__">new</span>(</span><br><span class="line">                    domain.<span class="number">0</span>.<span class="title function_ invoke__">clone</span>().<span class="title function_ invoke__">into</span>(),</span><br><span class="line">                    trust_dns_server::proto::rr::RecordType::SOA,</span><br><span class="line">                ),</span><br><span class="line">                <span class="title function_ invoke__">generate_soa</span>(domain.<span class="title function_ invoke__">clone</span>()),</span><br><span class="line">            );</span><br><span class="line"></span><br><span class="line">            <span class="keyword">let</span> <span class="variable">a_rec</span> = <span class="title function_ invoke__">generate_a</span>(name.<span class="title function_ invoke__">clone</span>(), rec);</span><br><span class="line"></span><br><span class="line">            rc.<span class="title function_ invoke__">insert</span>(RrKey::<span class="title function_ invoke__">new</span>(name.<span class="number">0</span>.<span class="title function_ invoke__">into</span>(), a_rec.<span class="title function_ invoke__">record_type</span>()), a_rec);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">authority</span> = InMemoryAuthority::<span class="title function_ invoke__">new</span>(</span><br><span class="line">            domain.<span class="number">0</span>.<span class="title function_ invoke__">clone</span>().<span class="title function_ invoke__">into</span>(),</span><br><span class="line">            rc,</span><br><span class="line">            trust_dns_server::authority::ZoneType::Primary,</span><br><span class="line">            <span class="literal">false</span>,</span><br><span class="line">        )</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">        catalog.<span class="title function_ invoke__">upsert</span>(domain.<span class="number">0</span>.<span class="title function_ invoke__">into</span>(), <span class="type">Box</span>::<span class="title function_ invoke__">new</span>(Arc::<span class="title function_ invoke__">new</span>(authority)));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">resolv</span> = trust_dns_resolver::system_conf::<span class="title function_ invoke__">read_system_conf</span>()?;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">nsconfig</span> = NameServerConfigGroup::<span class="title function_ invoke__">new</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">server</span> <span class="keyword">in</span> resolv.<span class="number">0</span>.<span class="title function_ invoke__">name_servers</span>() &#123;</span><br><span class="line">        nsconfig.<span class="title function_ invoke__">push</span>(server.<span class="title function_ invoke__">clone</span>());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">options</span> = <span class="title function_ invoke__">Some</span>(resolv.<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">config</span> = &amp;ForwardConfig &#123;</span><br><span class="line">        name_servers: nsconfig.<span class="title function_ invoke__">clone</span>(),</span><br><span class="line">        options,</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">forwarder</span> = ForwardAuthority::<span class="title function_ invoke__">try_from_config</span>(</span><br><span class="line">        Name::<span class="title function_ invoke__">root</span>(),</span><br><span class="line">        trust_dns_server::authority::ZoneType::Primary,</span><br><span class="line">        config,</span><br><span class="line">    )</span><br><span class="line">    .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;Could not boot forwarder&quot;</span>);</span><br><span class="line"></span><br><span class="line">    catalog.<span class="title function_ invoke__">upsert</span>(Name::<span class="title function_ invoke__">root</span>().<span class="title function_ invoke__">into</span>(), <span class="type">Box</span>::<span class="title function_ invoke__">new</span>(Arc::<span class="title function_ invoke__">new</span>(forwarder)));</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(catalog)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Tying-it-all-together"><a href="#Tying-it-all-together" class="headerlink" title="Tying it all together"></a>Tying it all together</h3><p>Remember that <code>main</code> function? Now we need to rewrite it to both generate our catalog, plus provide the services that we want to serve. That involves setting up some <code>tokio</code> stuff, and then binding that to the <code>trust-dns</code> library so that DNS can be served properly.</p>
+<p>It’s important to note at this time that DNS operates over both TCP and UDP, where TCP is used for larger records that UDP can’t be used to field, and a few other things. Setting this up properly is key. We’ve decided to give the TCP socket a 60 second timeout to ensure that any call made into it gets a reasonable chance to get back out before being terminated.</p>
+<p>So, tacking on to the rest of our <code>main</code> function, we start listeners for TCP and UDP on port 5300, so we don’t have to run it as <code>root</code>, which is required for ports less than 1024 on the majority of operating systems. Don’t worry, we’ll look at how to query it later. Then, we take those listeners and encapsulate them in a <code>trust-dns</code> <code>ServerFuture</code>, which does the job of running the server for us. After that, we call <code>block_until_done()</code> on the <code>ServerFuture</code> which keeps the server running until the program is terminated, or a serious error occurs.</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[tokio::main]</span></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), anyhow::Error&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">f</span> = std::fs::OpenOptions::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    f.<span class="title function_ invoke__">read</span>(<span class="literal">true</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">io</span> = f.<span class="title function_ invoke__">open</span>(<span class="string">&quot;examplens.yaml&quot;</span>)?;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">records</span>: Records = serde_yaml::<span class="title function_ invoke__">from_reader</span>(io)?;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sa</span> = SocketAddr::<span class="title function_ invoke__">new</span>(std::net::IpAddr::<span class="title function_ invoke__">V4</span>(Ipv4Addr::<span class="title function_ invoke__">new</span>(<span class="number">127</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>)), <span class="number">5300</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">tcp</span> = TcpListener::<span class="title function_ invoke__">bind</span>(sa).<span class="keyword">await</span>?;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">udp</span> = UdpSocket::<span class="title function_ invoke__">bind</span>(sa).<span class="keyword">await</span>?;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">sf</span> = ServerFuture::<span class="title function_ invoke__">new</span>(<span class="title function_ invoke__">generate_catalog</span>(records)?);</span><br><span class="line">    sf.<span class="title function_ invoke__">register_socket</span>(udp);</span><br><span class="line">    sf.<span class="title function_ invoke__">register_listener</span>(tcp, Duration::<span class="title function_ invoke__">new</span>(<span class="number">60</span>, <span class="number">0</span>));</span><br><span class="line">    <span class="keyword">match</span> sf.<span class="title function_ invoke__">block_until_done</span>().<span class="keyword">await</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(_) =&gt; <span class="title function_ invoke__">Ok</span>(()),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(e) =&gt; <span class="title function_ invoke__">Err</span>(anyhow!(e)),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Running-and-Querying"><a href="#Running-and-Querying" class="headerlink" title="Running and Querying"></a>Running and Querying</h2><p>So, I did not include the myriad of <code>use</code> statements you would normally add to your rust program to import all these types. So, for the sake of brevity, if you want to follow along, use <a target="_blank" rel="noopener" href="https://github.com/erikh/examplens.rs">the repository</a>.</p>
+<p>If you <code>cargo run</code> the project, or <code>cargo install --path .</code> and run <code>examplens</code>, it will expect a configuration file called <code>examplens.yaml</code> in the current working directory. If it does not exist, it will fail to run. You can use this configuration, which we will use in the querying examples:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">example.com:</span></span><br><span class="line">    <span class="attr">foo.example.com:</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.2</span></span><br></pre></td></tr></table></figure>
+
+<p>This associates a SOA for <code>example.com</code>, and then associates the IP <code>127.0.0.2</code> for <code>foo.example.com</code>. <code>example.com</code> itself is a RFC-specified “dead” domain name, intentionally used for examples in RFC documents. It will not resolve to anything on the global internet. Try now, if you’d like. So, this is a good test that our resolver is working properly.</p>
+<p>To query, run the server in the background, and use the <code>dig</code> tool to query it:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">$ dig -p 5300 foo.example.com @127.0.0.1</span><br><span class="line"></span><br><span class="line">; &lt;&lt;&gt;&gt; DiG 9.10.6 &lt;&lt;&gt;&gt; -p 5300 foo.example.com @127.0.0.1</span><br><span class="line">;; global options: +cmd</span><br><span class="line">;; Got answer:</span><br><span class="line">;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 9014</span><br><span class="line">;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0</span><br><span class="line">;; WARNING: recursion requested but not available</span><br><span class="line"></span><br><span class="line">;; QUESTION SECTION:</span><br><span class="line">;foo.example.com.               IN      A</span><br><span class="line"></span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">foo.example.com.        30      IN      A       127.0.0.2</span><br><span class="line"></span><br><span class="line">;; Query time: 1 msec</span><br><span class="line">;; SERVER: 127.0.0.1#5300(127.0.0.1)</span><br><span class="line">;; WHEN: Wed May 31 12:26:20 PDT 2023</span><br><span class="line">;; MSG SIZE  rcvd: 49</span><br></pre></td></tr></table></figure>
+
+<p>You can see here that we had a successful query, it resolved to <code>127.0.0.2</code>, and it took <code>1ms</code> to run, which we’ll learn later is the smallest number <code>dig</code> can produce. :)</p>
+<p>Let’s try <code>google.com</code> to test the forwarder:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ dig -p 5300 google.com @127.0.0.1</span><br><span class="line"></span><br><span class="line">; &lt;&lt;&gt;&gt; DiG 9.10.6 &lt;&lt;&gt;&gt; -p 5300 google.com @127.0.0.1</span><br><span class="line">;; global options: +cmd</span><br><span class="line">;; Got answer:</span><br><span class="line">;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 21458</span><br><span class="line">;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0</span><br><span class="line"></span><br><span class="line">;; QUESTION SECTION:</span><br><span class="line">;google.com.                    IN      A</span><br><span class="line"></span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">google.com.             300     IN      A       142.251.214.142</span><br><span class="line"></span><br><span class="line">;; Query time: 50 msec</span><br><span class="line">;; SERVER: 127.0.0.1#5300(127.0.0.1)</span><br><span class="line">;; WHEN: Wed May 31 12:25:13 PDT 2023</span><br><span class="line">;; MSG SIZE  rcvd: 44</span><br></pre></td></tr></table></figure>
+
+<p>Your IP address will likely be different, but you can see the result was a success, and it took 50ms to run.</p>
+<h2 id="How-fast-is-it"><a href="#How-fast-is-it" class="headerlink" title="How fast is it?"></a>How fast is it?</h2><p>These numbers are produced on a M1 Mac, on battery, with the <a target="_blank" rel="noopener" href="https://github.com/erikh/nsbench">nsbench</a> utility. Note that this is a fairly experimental (and slightly broken) utility, but it does measure resolves properly and reliably.</p>
+<p><code>cargo run --release</code> was used to launch the DNS server, so we get the best code <code>rustc</code> can create. Here’s some of the output. Note this will be much faster (an order of magnitude or better) on server class hardware or even a cloud VM, but the results are still quite pleasing for something we cobbled together in an hour.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1s avg latency: 43.225µs | Successes: 23219 | Failures: 0 | Total Req: 23219</span><br></pre></td></tr></table></figure>
+
+<p>That’s all there is folks! I hope you enjoyed reading this.</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/dns/" rel="tag"># dns</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/04/28/Moving-to-Wayland-with-Sway/" rel="prev" title="Moving to Wayland (with Sway)">
+                  <i class="fa fa-chevron-left"></i> Moving to Wayland (with Sway)
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Erik Hollensbe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
