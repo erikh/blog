@@ -1,7 +1,9 @@
 ---
 title: Writing a DNS Server with trust-dns
 date: 2023-05-31 20:40:01
-tags: dns
+tags:
+    - dns
+    - rust
 ---
 
 Hi friends! Today I will be offering an article on how to write your own, specialized DNS server with the rust `trust-dns` toolkit.
