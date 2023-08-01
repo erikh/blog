@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.0.0-rc1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"erik.hollensbe.org","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.16.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="One thing a good scheduler must do is “binpack”, which is the art of finding the right spot for your special program to run in a group of otherwise able computers. Computers have limited resources, an">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Binpacking &amp; Set Theory: A Tutorial">
+<meta property="og:url" content="http://erik.hollensbe.org/2023/07/31/Binpacking-Set-Theory-A-Tutorial/index.html">
+<meta property="og:site_name" content="Hmm">
+<meta property="og:description" content="One thing a good scheduler must do is “binpack”, which is the art of finding the right spot for your special program to run in a group of otherwise able computers. Computers have limited resources, an">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-08-01T05:12:09.000Z">
+<meta property="article:modified_time" content="2023-08-01T07:15:52.217Z">
+<meta property="article:author" content="Erik Hollensbe">
+<meta property="article:tag" content="Programming">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://erik.hollensbe.org/2023/07/31/Binpacking-Set-Theory-A-Tutorial/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://erik.hollensbe.org/2023/07/31/Binpacking-Set-Theory-A-Tutorial/","path":"2023/07/31/Binpacking-Set-Theory-A-Tutorial/","title":"Binpacking & Set Theory: A Tutorial"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Binpacking & Set Theory: A Tutorial | Hmm</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Hmm</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">A Technical Blog by Erik Hollensbe</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-overview-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Erik Hollensbe"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">Erik Hollensbe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/erikh" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;erikh" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:erik+blog@hollensbe.org" title="E-Mail → mailto:erik+blog@hollensbe.org" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://erik.hollensbe.org/2023/07/31/Binpacking-Set-Theory-A-Tutorial/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Erik Hollensbe">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hmm">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Binpacking & Set Theory: A Tutorial | Hmm">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Binpacking & Set Theory: A Tutorial
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2023-07-31 22:12:09" itemprop="dateCreated datePublished" datetime="2023-07-31T22:12:09-07:00">2023-07-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2023-08-01 00:15:52" itemprop="dateModified" datetime="2023-08-01T00:15:52-07:00">2023-08-01</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>One thing a good scheduler must do is “binpack”, which is the art of finding the right spot for your special program to run in a group of otherwise able computers. Computers have limited resources, and staying within those limits is key to having a good multi-tenant experience. Binpacking is named as such in relationship to the concept of several bins of pears at a pear farm in a line, collecting pears from the trees. You will fill the bins at different rates, so knowing both when the bins are full and how to divert the resources to available bins is a very important part of scheduling.</p>
+<p>Binpacking is fundamentally a set theory problem, which I will demonstrate with basic binary operations. This is a simplification of the problem, but we’ll get into more advanced scenarios in a bit.</p>
+<p>First off, the goal is to turn all these <code>0</code>s into <code>1</code>s:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0100000100001000</span><br></pre></td></tr></table></figure>
+
+<p>Until then, the number really isn’t saturated, now is it? So let’s do a binary “exclusive OR” operation with this other number! This will give us the result we want:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1011111011110111</span><br></pre></td></tr></table></figure>
+
+<p>Since “exclusive OR” gives us a <code>1</code> if either is true, but not both, we get the result we want without colliding.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1111111111111111</span><br></pre></td></tr></table></figure>
+
+<p>And this number cannot be amended now without turning a <code>1</code> back into a <code>0</code>. This is the basis of how a scheduler works within a single node, but also amongst the whole cluster.</p>
+<p>Think of each one of those <code>1</code>s as a taken CPU, and every <code>0</code> as a free one. Now, this is a single vector, which we can combine with other vectors such as memory usage or even much more subtle metrics like CPU pressure to determine a suitable host to stuff our container or VM onto.</p>
+<p>A good way to express set theory with an arbitrary number of parameters is SQL, since it is more or less designed to handle this problem in all sorts of nefarious ways. Most of this tutorial will be based in the SQL language, so if you want to take it to your favorite general purpose language and use these ideas that way, great! It’s probably gonna handle SQL fine. Also keep in mind that none of these techniques are expressly limited to SQL, they’re just easier to model in a SQL language. A RDBMS generally has other drawbacks that many schedulers, especially big ones made by Google are not willing to tolerate. As with any large undertaking of importance, it’s critical to weigh your advantages and your disadvantages to the given situation.</p>
+<p>All SQL is targeted at PostgreSQL idioms, but should be trivial to port to e.g. SQLite or MySQL.</p>
+<p>Let’s start with a good schema for our database:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- list of the nodes. this is our physical (as far as we&#x27;re concerned at least)</span></span><br><span class="line"><span class="comment">-- representation of computing resources.</span></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> nodes (</span><br><span class="line">    id serial <span class="keyword">primary</span> key,</span><br><span class="line">    ip <span class="type">varchar</span> <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">    total_cpus <span class="type">int</span> <span class="keyword">not</span> <span class="keyword">null</span>, <span class="comment">-- this is usually measured in vCPU which is 0.5 CPUs, usually a single CPU thread</span></span><br><span class="line">    total_mem <span class="type">int</span> <span class="keyword">not</span> <span class="keyword">null</span>,  <span class="comment">-- probably in gigabytes but depends on the scenario</span></span><br><span class="line">    total_disk <span class="type">int</span> <span class="keyword">not</span> <span class="keyword">null</span>  <span class="comment">-- disk is usually much more complicated than this</span></span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- this how you create an enum in postgres</span></span><br><span class="line"><span class="keyword">CREATE</span> TYPE metric <span class="keyword">AS</span> ENUM(<span class="string">&#x27;cpu&#x27;</span>, <span class="string">&#x27;memory&#x27;</span>, <span class="string">&#x27;disk&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- each entry indicates a block of that metric in use</span></span><br><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> nodes_stats (</span><br><span class="line">    node_id <span class="type">int</span> <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">    metric metric <span class="keyword">not</span> <span class="keyword">null</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>To reiterate what the comments say, we keep one table, called <code>nodes</code>, which is a representation of our physical limits for each instance we manage. We then store a metric for each unit in use.</p>
+<p>To enter a new node, we simply insert it with its fixed stats:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> nodes (ip, total_cpus, total_mem, total_disk) <span class="keyword">values</span> (<span class="string">&#x27;127.0.0.1&#x27;</span>, <span class="number">24</span>, <span class="number">64</span>, <span class="number">100</span>) returning id;</span><br></pre></td></tr></table></figure>
+
+<p>To enter a new usage, we simply insert into the <code>nodes_stats</code> table:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> nodes_stats (node_id, metric) <span class="keyword">values</span> (<span class="number">1</span>, <span class="string">&#x27;cpu&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>To query nodes that are available for use, we have to get a little more creative. What we do here is count the number of metrics for a given vector that are in use, then we subtract that number from the total available and see if it meets our requirement. This is very similar to what the exclusive OR does above semantically, but just with larger pieces of data.</p>
+<p>Please note in this query that <code>target_cpu</code>, <code>target_mem</code> and <code>target_disk</code> are all placeholders and depend on what kind of data you wish to require. It’s also expected that you would do this with a transaction that also inserted the used data, ensuring basic atomicity.</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> nodes.id, cpu.metric, mem.metric, disk.metric</span><br><span class="line"><span class="keyword">FROM</span> nodes</span><br><span class="line"><span class="keyword">LEFT</span> <span class="keyword">OUTER</span> <span class="keyword">JOIN</span> (<span class="keyword">SELECT</span> nodes.id <span class="keyword">AS</span> id, <span class="built_in">count</span>(metric) <span class="keyword">as</span> metric</span><br><span class="line">     <span class="keyword">FROM</span> nodes_stats</span><br><span class="line">     <span class="keyword">INNER</span> <span class="keyword">JOIN</span> nodes <span class="keyword">ON</span> nodes.id <span class="operator">=</span> node_id</span><br><span class="line">     <span class="keyword">WHERE</span> metric <span class="operator">=</span> <span class="string">&#x27;cpu&#x27;</span></span><br><span class="line">     <span class="keyword">GROUP</span> <span class="keyword">by</span> nodes.id, nodes.total_cpus</span><br><span class="line">     <span class="keyword">HAVING</span>(nodes.total_cpus <span class="operator">-</span> <span class="built_in">count</span>(metric) <span class="operator">&lt;</span> nodes.total_cpus <span class="operator">-</span> target_cpu)</span><br><span class="line">    ) <span class="keyword">as</span> cpu <span class="keyword">ON</span> nodes.id <span class="operator">=</span> cpu.id</span><br><span class="line"><span class="keyword">LEFT</span> <span class="keyword">OUTER</span> <span class="keyword">JOIN</span> (<span class="keyword">SELECT</span> nodes.id <span class="keyword">AS</span> id, <span class="built_in">count</span>(metric) <span class="keyword">as</span> metric</span><br><span class="line">     <span class="keyword">FROM</span> nodes_stats</span><br><span class="line">     <span class="keyword">INNER</span> <span class="keyword">JOIN</span> nodes <span class="keyword">ON</span> nodes.id <span class="operator">=</span> node_id</span><br><span class="line">     <span class="keyword">WHERE</span> metric <span class="operator">=</span> <span class="string">&#x27;memory&#x27;</span></span><br><span class="line">     <span class="keyword">GROUP</span> <span class="keyword">by</span> nodes.id, nodes.total_mem</span><br><span class="line">     <span class="keyword">HAVING</span>(nodes.total_mem <span class="operator">-</span> <span class="built_in">count</span>(metric) <span class="operator">&lt;</span> nodes.total_mem <span class="operator">-</span> target_mem)</span><br><span class="line">    ) <span class="keyword">as</span> mem <span class="keyword">ON</span> nodes.id <span class="operator">=</span> mem.id</span><br><span class="line"><span class="keyword">LEFT</span> <span class="keyword">OUTER</span> <span class="keyword">JOIN</span> (<span class="keyword">SELECT</span> nodes.id <span class="keyword">AS</span> id, <span class="built_in">count</span>(metric) <span class="keyword">as</span> metric</span><br><span class="line">     <span class="keyword">FROM</span> nodes_stats</span><br><span class="line">     <span class="keyword">INNER</span> <span class="keyword">JOIN</span> nodes <span class="keyword">ON</span> nodes.id <span class="operator">=</span> node_id</span><br><span class="line">     <span class="keyword">WHERE</span> metric <span class="operator">=</span> <span class="string">&#x27;disk&#x27;</span></span><br><span class="line">     <span class="keyword">GROUP</span> <span class="keyword">by</span> nodes.id, nodes.total_disk</span><br><span class="line">     <span class="keyword">HAVING</span>(nodes.total_disk <span class="operator">-</span> <span class="built_in">count</span>(metric) <span class="operator">&lt;</span> nodes.total_disk <span class="operator">-</span> target_disk)</span><br><span class="line">    ) <span class="keyword">as</span> disk <span class="keyword">ON</span> nodes.id <span class="operator">=</span> disk.id</span><br><span class="line"><span class="keyword">WHERE</span> (</span><br><span class="line">  cpu.metric <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">AND</span></span><br><span class="line">  mem.metric <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">AND</span></span><br><span class="line">  disk.metric <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span></span><br><span class="line">) <span class="keyword">OR</span> (</span><br><span class="line">  cpu.metric <span class="keyword">IS</span> <span class="keyword">NULL</span> <span class="keyword">AND</span></span><br><span class="line">  mem.metric <span class="keyword">IS</span> <span class="keyword">NULL</span> <span class="keyword">AND</span></span><br><span class="line">  disk.metric <span class="keyword">IS</span> <span class="keyword">NULL</span></span><br><span class="line">)</span><br><span class="line">LIMIT <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
+
+<p>This query will select a free node every time, provided you’re inserting your metrics once you find something suitable in an atomic way.</p>
+<p>Anyway, there you have it! Hope you enjoyed this, it was fun to put it together.</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Programming/" rel="tag"># Programming</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/05/31/Writing-a-DNS-Server-with-trust-dns/" rel="prev" title="Writing a DNS Server with trust-dns">
+                  <i class="fa fa-chevron-left"></i> Writing a DNS Server with trust-dns
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Erik Hollensbe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
