@@ -116,7 +116,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -146,6 +146,107 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://erik.hollensbe.org/2023/08/01/Shell-Tricks-Everyone-Should-Know/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Erik Hollensbe">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hmm">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | Hmm">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2023/08/01/Shell-Tricks-Everyone-Should-Know/" class="post-title-link" itemprop="url">Shell Tricks Everyone Should Know</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2023-08-01 17:47:32 / Modified: 18:14:22" itemprop="dateCreated datePublished" datetime="2023-08-01T17:47:32-07:00">2023-08-01</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>One thing about getting older as a software person is that you get to see certain things fade out of fashion, largely because something better has come along, or the solution is no longer necessary. True to form for tech, a lot of babies get thrown out while discarding the bathwater. The shell is a great example of this; many things have been partially lost to time as shells improved, better shells were made the default on operating systems, as well as the requirement for a minimal shell decreased as computing resources got larger. Still, however, the shell remains something we must all use, and to share our shell scripts with others, we must take certain precautions. This article covers several of them. You may have seen some of these before, but by and large, all of them should be used in any shell script you write.</p>
+<p>A lot of Linux users are very familiar with the venerable “Bourne Again Shell” or <code>bash</code>. It is more often than not (with a few exceptions, some use ash&#x2F;dash-based shells) the standard&#x2F;default shell on any given Linux distribution, with its own symlink to <code>/bin/sh</code>. On BSD systems, Solaris&#x2F;Illumos, and other unixes, <code>/bin/sh</code> is frequently its own animal, closer in target to the <code>ash</code> derivatives on Linux than <code>bash</code>. <code>bash</code> has very different semantics than a more classically styled Bourne Shell, and the differences can trip a lot of folks up. For example, <code>/bin/[</code> is symlinked to <code>/bin/test</code> and that’s because those aren’t built-ins in a lot of standard Bourne Shells; those are actually programs you execute while you’re running the script.</p>
+<p>This article does expect you have a basic familiarity with Bourne Shells as well as scripting languages in general.</p>
+<h1 id="x2F-usr-x2F-bin-x2F-env-is-here-to-save-you"><a href="#x2F-usr-x2F-bin-x2F-env-is-here-to-save-you" class="headerlink" title="&#x2F;usr&#x2F;bin&#x2F;env is here to save you"></a>&#x2F;usr&#x2F;bin&#x2F;env is here to save you</h1><p>So I guess the first thing we should cover is situations where you know you need something like <code>bash</code>, or maybe even something more esoteric like <code>zsh</code>, and want to keep your script portable, so you do this:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br></pre></td></tr></table></figure>
+
+<p>Which is wrong. On BSDs and older unixes (although Solaris is in &#x2F;bin IIRC), bash is usually in <code>/usr/local/bin/bash</code>, which is not where this script points. This script will not run on BSD without a symlink manually added. The easy way to do this is by invoking bash from the <code>$PATH</code>, which can be done like this:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!bash</span></span><br></pre></td></tr></table></figure>
+
+<p>There is no problem with this, it does however benefit you to use <code>/usr/bin/env</code> as you get a little more flexibility of control of the commandline as well as the environment passed to it. The <code>-i</code> and <code>-S</code> options in particular are of use to people who wish to isolate a script or provide additional arguments to it. In general, it is just a little more flexible (without any drawbacks) to:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/usr/bin/env bash</span></span><br></pre></td></tr></table></figure>
+
+<p>This also works great with scripting languages like <code>ruby</code>, <code>perl</code>, and <code>python</code>.</p>
+<h1 id="The-‘x’-trick"><a href="#The-‘x’-trick" class="headerlink" title="The ‘x’ trick"></a>The ‘x’ trick</h1><p>Some Bourne Shells are more finicky about syntax than others, and depending on how intrinsics like <code>test</code> are invoked, quoting becomes an issue. Take for example this small script:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> [ <span class="string">&quot;<span class="variable">$foo</span>&quot;</span> = <span class="string">&quot;&quot;</span> ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;foo is empty&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>This is a problem in a traditional Bourne Shell because of how the <code>if</code> line is evaluated. More or less, <code>[</code> as previously mentioned is actually a program. When <code>[</code> is invoked, the <code>if</code> has already swallowed the quoting, so the syntax is essentially:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[ &lt;expanded <span class="variable">$foo</span>&gt; = ]</span><br></pre></td></tr></table></figure>
+
+<p>Which is of course a syntax error. This even gets more gory when <code>$foo</code> is also empty. The trick here is to use a placeholder character, typically an <code>x</code>, to pad the value so you can check for the existence of that. If it’s the only thing there, the string is empty, but the syntax error is now gone.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> [ <span class="string">&quot;x<span class="variable">$foo</span>&quot;</span> = <span class="string">&quot;x&quot;</span> ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;foo is empty&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="Stream-processing-with-shells"><a href="#Stream-processing-with-shells" class="headerlink" title="Stream processing with shells"></a>Stream processing with shells</h1><p>A lot of people deal with file contents only through pipes (e.g., <code>grep</code>) or end up using excessive amounts of ram stuffing files into variables. There are actually easier solutions to this.</p>
+<p>The variable <code>$IFS</code> can be set to a delimiter character (the default is “whitespace”) which is then used to delimit data. This variable has impact on <code>for</code> loops, as well as the <code>read</code> command, which is the key to our trick here.</p>
+<p>When <code>while</code> and <code>read</code> are combined, great things can happen:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(<span class="keyword">while</span> <span class="built_in">read</span> foo</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="variable">$foo</span></span><br><span class="line"><span class="keyword">done</span>) &lt; my_file.txt</span><br></pre></td></tr></table></figure>
+
+<p>A lot of people do this:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> foo <span class="keyword">in</span> $(<span class="built_in">cat</span> my_file.txt)</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="variable">$foo</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>The issue here is that <code>cat</code> is going to shove the whole file in RAM. The <code>&lt;</code> in the while reads it iteratively, reducing the ram usage to more or less one line at a time.</p>
+<h1 id="fin"><a href="#fin" class="headerlink" title="fin"></a>fin</h1><p>That’s all I can think of today. Perhaps there will be another one of these in the future!</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
